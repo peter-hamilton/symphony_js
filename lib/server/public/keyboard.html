@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Keyboard Interface</title>
+    <script src="config.js"></script>
+    <script src="symphony.js"></script>
+    <script type="text/javascript" src="js/lib/jquery-1.7.2.min.js"></script>
+    <!-- <script src="js/URI.js"></script> -->
+    <script>
+    // var query = URI.parseQuery(window.location.search);
+    // console.log(query);
+
+    var s; //lazy
+
+    //create client
+    var symphonyClient = new symphony.client({
+        "host": config.host,
+        "deviceId": "keyboard",
+        "type": "keyboard",
+        'arguments': {
+            'icon': 'fa-keyboard-o'
+        }
+    }, function() {
+        s = symphonyClient;
+
+        // symphonyClient.registerArgument("lastKey", "text", "Last Key");
+        symphonyClient.registerOut("keyboardOutput", "keyEvent", null, 'Keyboard Output');
+    });
+
+
+    var outputKeyboardEvent = function(event) {
+        //create chord event
+        // keyEvent = JSON.stringify({
+        //  "keycode": event.keyCode
+        // });
+        // keyboardOutput.emit("keyEvent", keyEvent, symphonyClient);
+        //for each chord that contains keyboardNote
+
+        if (symphonyClient) {
+            // symphonyClient.putArgument("lastKey", event.keyCode);
+            var char;
+            switch (event.keyCode) {
+                case 13:
+                    char = "ENT";
+                    break;
+                case 8:
+                    char = "BCK";
+                    break;
+                case 9:
+                    char = "TAB";
+                    break;
+                case 127:
+                    char = "DEL";
+                    break;
+                case 37:
+                    char = "LT";
+                    break;
+                case 38:
+                    char = "UP";
+                    break;
+                case 39:
+                    char = "RT";
+                    break;
+                case 40:
+                    char = "DN";
+                    break;
+
+                default:
+                    char = String.fromCharCode(event.keyCode);
+
+                    if (char.length !== 1) return;
+
+                    if (!event.shiftKey) {
+                        char = char.toLowerCase();
+                    }
+
+            }
+            if (char) {
+                symphonyClient.emit("keyboardOutput", char);
+            }
+        }
+    };
+
+    window.addEventListener('keydown', function(event) {
+
+        console.log(event);
+        if (event.keyCode === 89) {
+            // document.execCommand('copy');
+            // copyTextToClipboard("yum");
+        }
+        if (event){
+
+            outputKeyboardEvent(event);
+            event.preventDefault();
+        }
+    });
+
+    function simulatedClick(target, options) {
+
+        var event = target.ownerDocument.createEvent('MouseEvents'),
+            options = options || {};
+
+        //Set your default options to the right of ||
+        var opts = {
+            type: options.type || 'click',
+            canBubble: options.canBubble || true,
+            cancelable: options.cancelable || true,
+            view: options.view || target.ownerDocument.defaultView,
+            detail: options.detail || 1,
+            screenX: options.screenX || 0, //The coordinates within the entire page
+            screenY: options.screenY || 0,
+            clientX: options.clientX || 0, //The coordinates within the viewport
+            clientY: options.clientY || 0,
+            ctrlKey: options.ctrlKey || false,
+            altKey: options.altKey || false,
+            shiftKey: options.shiftKey || false,
+            metaKey: options.metaKey || false, //I *think* 'meta' is 'Cmd/Apple' on Mac, and 'Windows key' on Win. Not sure, though!
+            button: options.button || 0, //0 = left, 1 = middle, 2 = right
+            relatedTarget: options.relatedTarget || null,
+        }
+
+        //Pass in the options
+        event.initMouseEvent(
+            opts.type,
+            opts.canBubble,
+            opts.cancelable,
+            opts.view,
+            opts.detail,
+            opts.screenX,
+            opts.screenY,
+            opts.clientX,
+            opts.clientY,
+            opts.ctrlKey,
+            opts.altKey,
+            opts.shiftKey,
+            opts.metaKey,
+            opts.button,
+            opts.relatedTarget
+        );
+
+        //Fire the event
+        target.dispatchEvent(event);
+    }
+
+    function simulatedKey(target, options) {
+
+        var event = target.ownerDocument.createEvent('MouseEvents'),
+            options = options || {};
+
+        //Set your default options to the right of ||
+        var opts = {
+            type: options.type || 'click',
+            canBubble: options.canBubble || true,
+            cancelable: options.cancelable || true,
+            view: options.view || target.ownerDocument.defaultView,
+            detail: options.detail || 1,
+            screenX: options.screenX || 0, //The coordinates within the entire page
+            screenY: options.screenY || 0,
+            clientX: options.clientX || 0, //The coordinates within the viewport
+            clientY: options.clientY || 0,
+            ctrlKey: options.ctrlKey || false,
+            altKey: options.altKey || false,
+            shiftKey: options.shiftKey || false,
+            metaKey: options.metaKey || false, //I *think* 'meta' is 'Cmd/Apple' on Mac, and 'Windows key' on Win. Not sure, though!
+            button: options.button || 0, //0 = left, 1 = middle, 2 = right
+            relatedTarget: options.relatedTarget || null,
+        }
+
+        //Pass in the options
+        event.initMouseEvent(
+            opts.type,
+            opts.canBubble,
+            opts.cancelable,
+            opts.view,
+            opts.detail,
+            opts.screenX,
+            opts.screenY,
+            opts.clientX,
+            opts.clientY,
+            opts.ctrlKey,
+            opts.altKey,
+            opts.shiftKey,
+            opts.metaKey,
+            opts.button,
+            opts.relatedTarget
+        );
+
+        //Fire the event
+        target.dispatchEvent(event);
+    }
+
+    keydown = function(k) {
+        var oEvent = document.createEvent('KeyboardEvent');
+
+        // Chromium Hack
+        Object.defineProperty(oEvent, 'keyCode', {
+            get: function() {
+                return this.keyCodeVal;
+            }
+        });
+        Object.defineProperty(oEvent, 'which', {
+            get: function() {
+                return this.keyCodeVal;
+            }
+        });
+
+        if (oEvent.initKeyboardEvent) {
+            oEvent.initKeyboardEvent("keydown", true, true, document.defaultView, k, k, "", "", false, "");
+        } else {
+            oEvent.initKeyEvent("keydown", true, true, document.defaultView, false, false, false, false, k, 0);
+        }
+
+        oEvent.keyCodeVal = k;
+
+        if (oEvent.keyCode !== k) {
+            alert("keyCode mismatch " + oEvent.keyCode + "(" + oEvent.which + ")");
+        }
+        $("#text").trigger()
+        document.body.dispatchEvent(oEvent);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+        $('#text').click(function(e){
+            $(this).focus();
+    });
+    });
+
+    </script>
+</head>
+
+<body>
+    <button id="test"><img src="media/icons/keyboard.png" /></button>
+    <input id="text"></input>
+</body>
+
+</html>

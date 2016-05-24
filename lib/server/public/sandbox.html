@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Template</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script type="text/javascript" src="js/lib/jquery-1.7.2.min.js"></script>
+<style type="text/css">
+
+</style>
+    <script type="text/javascript">
+    //choose appropriate host
+    // var host = config.host;
+    // if (location.protocol === 'https:' && config.hostSSL) {
+    //     host = config.hostSSL;
+    // }
+    // var symphonyClient = new symphony.client({
+    //     "host": host, //host of symphony server
+    //     "deviceId": "template", //if null, random UUID
+    //     "type": "template", //type of class
+    //     'arguments': {
+    //         'icon': 'fa-gears' //Font Awesome Icon
+    //     }
+    // }, function() {
+    //     //Execute on Connected
+    // });
+
+    // var androidHandlers = {};
+    // var handleAndroidEvent = function(event, args) {
+    //     if (event in androidHandlers) {
+    //         androidHandlers[event](args);
+    //     }
+    // };
+
+    var getClosestElement = function(x, y, dx, dy, elements) {
+        x = x || 0;
+        y = y || 0;
+        dx = dx || 0;
+        dy = dy || 0;
+        elements = elements || $("a");
+        var closestElement = null;
+        var closestDistance = null;
+        for (var i = 0; i < elements.length; i++) {
+            var rect = elements[i].getBoundingClientRect();
+            var yDist = y - (rect.top + (rect.bottom - rect.top) / 2);
+            console.log("y", yDist);
+            if (dy > 0 && yDist > 0) continue;
+            if (dy < 0 && yDist < 0) continue;
+            var xDist = x - (rect.left + (rect.right - rect.left) / 2);
+            console.log("z", xDist);
+            if (dx > 0 && xDist > 0) continue;
+            if (dx < 0 && xDist < 0) continue;
+
+            var dist = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
+            if (!closestElement || dist < closestDistance) {
+                closestElement = elements[i];
+                closestDistance = dist;
+            }
+        }
+        return closestElement;
+    }
+
+    var getNextElement = function(current, dx, dy, elements) {
+        dx = dx || 0;
+        dy = dy || 1;
+        elements = elements || $("a");
+        var exist = $.inArray(current, elements);
+        console.log(exist);
+        if (exist !== -1) {
+            elements.splice(exist, 1);
+        }
+        var currentRect = current.getBoundingClientRect();
+        var midX = currentRect.left + (currentRect.right - currentRect.left) / 2;
+        var midY = currentRect.top + (currentRect.bottom - currentRect.top) / 2;
+        console.log(midX, midY);
+        var closestElement = getClosestElement(midX, midY, dx, dy, elements);
+        return closestElement;
+    }
+
+    var uri;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+        // if ("v" in query) {
+        //     var videoId = query.v;
+        // }
+    });
+    </script>
+</head>
+
+<body>
+    <!-- Content -->
+    <a href="#">1</a>
+    <br/>
+    <a href="#">2</a>
+    <br/>
+    <a href="#">3</a>
+    <br/>
+    <a href="http://google.com">4</a>
+    <br/>
+    <a href="#">5</a>
+    <br/>
+    <a href="#">6</a>
+    <br/>
+</body>
+
+</html>

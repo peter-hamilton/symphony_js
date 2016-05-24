@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>NFC Reader</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script type="text/javascript" src="js/qrcode.js"></script>
+    <style type="text/css">
+    #qrcode {
+        margin: auto;
+        width: 60%;
+    }
+    
+    #label {
+        margin: auto;
+        width: 60%;
+    }
+    
+    #deviceId {
+        margin: auto;
+        width: 60%;
+    }
+    </style>
+    <script type="text/javascript">
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+    var symphonyClient = new symphony.client({
+        "host": host, //host of symphony server
+        "deviceId": "nfcReader", //if null, random UUID
+        "type": "nfcReader", //type of class
+        'arguments': {
+            'icon': 'fa-gears' //Font Awesome Icon
+        }
+    }, function() {
+        symphonyClient.registerOut("nfcTagRead", ["tag","text"], null, "NFC Reader Output");
+    });
+
+
+    var androidHandlers = {};
+    var androidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+    androidHandlers["read"] = function(value) {
+        console.log("scanned " + value);
+        updateOutputLabel(value);
+        symphonyClient.emit("nfcTagRead", value);
+        symphonyClient.registerStatic("lastTag","text",value,"Last Tag Scanned");
+    };
+
+    var updateOutputLabel = function(label) {
+        var labelElement = document.getElementById("label");
+        if (labelElement) {
+            labelElement.textContent = label;
+        }
+    }
+
+    var QR;
+
+    var setQR = function(val) {
+        if (!QR) {
+            var qrElement = document.getElementById("qrcode");
+            var size = qrElement.clientWidth;
+            QR = new QRCode(qrElement, {
+                text: val,
+                width: size,
+                height: size,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } else {
+            QR.clear();
+            QR.makeCode(val);
+        }
+
+        var labelElement = document.getElementById("deviceId");
+        if (labelElement) {
+            labelElement.textContent = "ID: " + val;
+        }
+    };
+
+    var uri;
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+        setQR(symphonyClient.deviceId);
+
+        if (typeof SymphonyAndroid === "undefined") {
+            updateOutputLabel("No NFC Reader Detected");
+            return;
+        }
+
+        updateOutputLabel("Scan Something!!!");
+
+    });
+    </script>
+</head>
+
+<body>
+    <div id="qrcode"></div>
+    <div id="deviceId"></div>
+    <div id="label"></div>
+</body>
+
+</html>

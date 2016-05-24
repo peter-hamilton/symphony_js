@@ -1,0 +1,6 @@
+lib/server/public/symphony.js
+dist/*
+node_modules
+*.log
+*~
+*/config.js

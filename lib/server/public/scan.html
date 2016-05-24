@@ -1,0 +1,139 @@
+<html>
+    <head>
+        <script type="text/javascript" src="js/lib/jquery-1.7.2.min.js"></script>
+
+        <script type="text/javascript" src="js/lib/jsqrcode/grid.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/version.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/detector.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/formatinf.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/errorlevel.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/bitmat.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/datablock.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/bmparser.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/datamask.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/rsdecoder.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/gf256poly.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/gf256.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/decoder.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/QRCode.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/findpat.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/alignpat.js"></script>
+        <script type="text/javascript" src="js/lib/jsqrcode/databr.js"></script>
+
+
+        
+        <script src="symphony.js"></script>
+        <!--<script type="text/javascript" src="js/qr.js"></script>-->
+        <script type="text/javascript">
+            var lastFocus = null;
+            var focus = null;
+            var lastFocusTone = null;
+            var focusTone = null;
+            //var host = 'https://172.21.18.29:3000';
+var host = "https://tonnetz.com:3000";            
+var sc = new symphony.client(host, null, 'demo');
+
+            
+
+                function read(a)
+                {
+                    $("#scanned").text("scanned: "  + a);
+                    if(a !== focus){
+                      
+                        sc.harmonize(a);
+                     
+                        if(focusTone && focusTone.type){
+                        lastFocus = focus;
+                        focus = a;
+                        
+			lastFocusTone = focusTone;
+                        focusTone.on("op",function(){});
+                        $("#inputText").val(focusTone.data.arguments.url);
+                        }
+                        focusTone = sc.getDoc("tones", a);
+                        focusTone.fetch(function(){
+				if(!focusTone.type)return;
+                            console.log("harmonized with",focusTone.data.type);
+                            displayTone(focusTone.data);
+                            focusTone.on("op", function(){
+                                displayTone(focusTone.data);
+                            })
+                        });
+                    }
+                }
+    
+                qrcode.callback = read;
+
+                var displayTone = function(tone){
+                    if(tone){
+
+                    $("#icon").css("visibility", "visible");
+                    $("#inputText").keyup(function (e) {
+            if (e.keyCode == 13) {
+                inputTone($("#inputText").val());
+            }
+        });
+
+                    if(tone.type === "projector"){
+                        $("#icon").attr("src", host + "/media/icons/screen.png");
+                         $("#info").html(tone.arguments.tabTitle);
+                    }
+                    else{
+
+                    }
+                    }
+                    else{
+                        console.log("invalid input");
+                    }
+                }
+
+                var inputTone = function(){
+                    var txt = $("#inputText").val();
+                    if(txt.search("http") !== 0){
+                        txt = "https://www.google.ca/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8#q=" + txt;
+                    }
+                    console.log("inputting " + txt);
+                    console.log(focusTone);
+                    if(focusTone){
+                        if(focusTone.data.type === "projector"){
+                            var cue = new symphony.Cue({"type":"webpage","arguments":{"target":focusTone.data.id,"url":txt}});
+                            sc.broadcastCue(cue);
+                        }
+                    }
+                };
+
+
+
+        </script>
+
+        <script type="text/javascript" src="js/camera.js"></script>
+        <script type="text/javascript" src="js/init.js"></script>
+
+        <style>
+        video {
+  width: 100%    !important;
+  height: 33%   !important;
+}
+img {
+  width: 300px    !important;
+  height: 300px   !important;
+}
+input[type="text"]
+{
+    font-size:24px;
+}
+        </style>
+
+    </head>
+    <body>
+        <p>Hold a QR Code in front of your webcam.</p>
+        <video  id="camsource" autoplay width="320" height="240">Failure :(</video>
+        <canvas id="qr-canvas" width="320" height="240" style="display:none"></canvas>
+        <h3 id="qr-value"></h3>
+        <h3 id="scanned"></h3>
+        <img style="visibility:hidden" id="icon" src="http://www.codeproject.com/KB/GDI-plus/ImageProcessing2/img.jpg"/>
+        <h2 id="info"></h2>
+        <input size="100" id="inputText" type="text" name="fname">
+        <button onclick="inputTone()">Action</button>
+    </body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Template</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <style type="text/css">
+
+    </style>
+    <script type="text/javascript">
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+    var symphonyClient = new symphony.client({
+        "host": host, //host of symphony server
+        "reset":true,
+        "deviceId": "template", //if null, random UUID
+        "type": "template", //type of class
+        'arguments': {
+            'icon': 'fa-gears' //Font Awesome Icon
+        }
+    }, function() {
+        //Execute on Connected
+
+        if(typeof SymphonyAndroid !== "undefined"){
+            SymphonyAndroid.emit("harmonize",symphonyClient.deviceId);
+        }else{
+            document.body.textContent += " ----NOPE " + symphonyClient.deviceId;
+        }
+    });
+
+    var androidHandlers = {};
+    var handleAndroidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+
+    var uri;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+    document.body.textContent += "\nhost " + host;
+
+
+    });
+    </script>
+</head>
+
+<body>
+    <!-- Content -->
+    Hello World
+</body>
+
+</html>

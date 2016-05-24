@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Youtube</title>
+    <script type="text/javascript" src="config.js"></script>
+    <script type="text/javascript" src="symphony.js"></script>
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <style type="text/css">
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #000
+    }
+    
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        padding-top: 30px;
+        height: 0;
+        overflow: hidden;
+    }
+    
+    .video-container iframe,
+    .video-container object,
+    .video-container embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    </style>
+    <script type="text/javascript">
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+    var symphonyClient = new symphony.client({
+        "host": config.host,
+        "type": "youtube",
+        'arguments': {
+            'icon': 'fa-keyboard-o'
+        }
+    }, function() {
+        var pitch = symphonyClient.register({
+            "id": "playbackState",
+            "type": "mediaCommand",
+            "handler": function(val) {
+                handleVideoCommand(val);
+            },
+            "description": "Control Youtube",
+            "flags": symphony.Pitch.FLAG_ARGUMENT | symphony.Pitch.FLAG_IN | symphony.Pitch.FLAG_OUT | symphony.Pitch.FLAG_LOCKED
+        });
+
+        symphonyClient.register({
+            "id": "currentVideo",
+            "type": "text",
+            "description": "Search Youtube","handler":function(val) {
+            if(val && typeof val === "string"){
+                search(val);
+            }
+        }, 
+            "flags": symphony.Pitch.FLAG_ARGUMENT | symphony.Pitch.FLAG_IN | symphony.Pitch.FLAG_OUT | symphony.Pitch.FLAG_LOCKED
+        });
+
+
+    });
+
+    var search = function(query) {
+        var location = "http://www.youtube.com/results?search_query=" + query;
+        window.location = location;
+    }
+
+
+    var updateFocusArgument = function(value) {
+        // Create the event.
+        var event = new CustomEvent('updateFocusArgument', {
+            'detail': value
+        });
+        console.log("dispatching", event);
+        // target can be any Element or other EventTarget.
+        document.dispatchEvent(event);
+    };
+
+
+
+    var onYouTubeIframeAPIReady = function() {};
+
+    var loadYoutubeApi = function(callback) {
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        if (callback) {
+            onYouTubeIframeAPIReady = callback;
+        }
+    };
+    var onPlayerReady = function(event) {
+        // event.target.playVideo();
+    }
+    var onPlayerStateChange = function(event) {
+        console.log(event);
+        // if (event.data == YT.PlayerState.PLAYING && !done) {
+        //   setTimeout(stopVideo, 6000);
+        //   done = true;
+        // }
+    }
+    var uri;
+    var videoId;
+    var player;
+    var loadYoutubeVideo = function(id) {
+        if (!player) {
+            player = new YT.Player('player', {
+                videoId: id,
+                playerVars: {
+                    'autoplay': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        } else {
+            player.loadVideoById(id);
+            var address = uri.query("v=" + id).href();
+            window.history.pushState({}, "", address);
+        }
+    };
+
+    var handleVideoCommand = function(command) {
+        if (!command || !command.type) throw "invalid command";
+
+        switch (command.type) {
+            case "play":
+                play();
+                break;
+            case "pause":
+                pause();
+                break;
+            case "toggle":
+                toggle();
+                break;
+            case "seek":
+                if (command.percentage) {
+                    seekPercentage(command.percentage);
+                }else if(command.value){
+                    seek(command.value);
+                }
+                break;
+        }
+    }
+
+    var play = function() {
+        player.playVideo();
+    };
+    var pause = function() {
+        player.pauseVideo();
+    };
+    var toggle = function() {
+        if (player) {
+            var state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                pause();
+            } else {
+                pause();
+            }
+        }
+    };
+
+    var seekPercentage = function(percentage) {
+        if (!player && percentage >= 0 && percentage <= 1) return;
+
+        var second = player.getDuration() * percentage;
+        seek(second);
+    }
+    var seek = function(second) {
+        if (!player) return;
+
+        if (!second || second < 0) {
+            second = 0;
+        }
+
+        var duration = player.getDuration();
+        second = Math.min(duration, second);
+        player.seekTo(second);
+    }
+
+    // document.addEventListener("chordEvent", function(event) {
+    //     if (event.detail) {
+    //         var chordEvent = event.detail;
+    //         console.log("chordEvent", chordEvent.type);
+    //         if (symphonyClient) {
+    //             var pitch = symphonyClient.getPitch(chordEvent.target);
+    //             if (pitch) {
+
+    //                 symphonyClient.executePitch(pitch, chordEvent.value);
+    //             }
+    //         }
+    //     }
+    // });
+
+    document.addEventListener("harmonize", function(event) {
+        if (event.detail) {
+            var subPitch = {
+                'id': 'BLAH',
+                'type': 'note',
+                'value': symphonyClient.deviceId,
+                'description': 'Youtube Controls',
+                'flags': symphony.Pitch.FLAG_LOCKED | symphony.Pitch.FLAG_OUT
+            };
+            registerSubPitch(subPitch);
+        }
+    });
+
+    var registerSubPitch = function(params) {
+        // Create the event.
+        var event = new CustomEvent('registerPitch', {
+            'detail': params
+        });
+        console.log("dispatching", event);
+        // target can be any Element or other EventTarget.
+        document.dispatchEvent(event);
+    };
+
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+        if ("v" in query) {
+            videoId = query.v;
+            if(symphonyClient){
+                symphonyClient.putArgument("currentVideo",videoId);
+            }
+            loadYoutubeApi(function() {
+                loadYoutubeVideo(videoId);
+            });
+        }
+    });
+
+    var updateInterval = setInterval(function() {
+        if (player) {
+            // updateFocusArgument({'duration':player.getDuration,})
+            symphonyClient.putArgument("playbackState", {
+                "duration": player.getDuration(),
+                "currentTime": player.getCurrentTime(),
+                "videoData": player.getVideoData()
+            });
+        };
+    }, 2500);
+    </script>
+</head>
+
+<body>
+    <div class="video-container" style="text-align:center">
+        <div id="player"></div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+<div class="scrollable">
+    <h1 class="scrollable-header app-name">{{sidebar.Title}}</h1>
+    <div class="scrollable-content">
+        <div ng-hide="sidebar.HomeOff">
+            <div>
+                <form role="form" name="sidebarForm" ng-submit='sidebarControl.submit()'>
+                    <input style="width:100%;" type="text" ng-model="sidebarControl.tagQuery" name="data" class="form-control" placeholder="Enter Tag Id"></input>
+                </form>
+            </div>
+        </div>
+        <div class="list-group" ui-turn-off='uiSidebarLeft'>
+            <div ng-show="sidebarMode"> <a class="list-group-item" ng-click="back()">Back<i class="fa fa-mail-reply pull-right"></i></a></div>
+            <div ng-hide="sidebar.HomeOff">
+                <a class="list-group-item" ng-href="{{homeHref}}">Home <i class="fa fa-home pull-right"></i></a>
+            </div>
+            <div ng-repeat="key in sidebar.Order track by $index">
+                <div style="background-color:#aaa;padding-left:3px;">{{sidebarHack[key]}}</div>
+                <a class="list-group-item" ng-click="sidebar.ItemSelected && sidebar.ItemSelected(key, $event)" ng-href="{{sidebar.Items[key].href}}">
+        <i class="fa {{ sidebar.Items[key].icon}} pull-left"></i>{{ sidebar.Items[key].name}}
+
+        
+        <span ng-show="sidebar.secondary" class="pull-right">
+        <button class="btn btn-xs btn-info" ng-click="sidebar.secondaryItemSelected(key,0, $event)">
+          <i class="fa fa-2x {{sidebar.secondary.icon}}"></i>
+        </button>
+      </span> 
+      </a>
+                   
+            </div>
+            <div ng-show="sidebar.Order.length===0" class="app-content-loading">
+                <div style="padding:4px; color:#bbb">Nothing :`(</div>
+                <!-- <i class="fa fa-spinner fa-spin loading-spinner"></i> -->
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ng-href="{{sidebarItems[key].href}}" -->

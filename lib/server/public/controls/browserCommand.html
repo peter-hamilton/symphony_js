@@ -1,0 +1,17 @@
+<form ng-hide="control" role="form" name="overwriteform" ng-submit='control.submit()'>
+    <div ng-show="control.locked && control.out">
+        <label ng-bind="control.value"></label>
+    </div>
+    <div ng-show="control.in">
+        <input type="text" name="data" ng-model="control.inputValue" class="form-control" placeholder="scroll by">
+    </div>
+
+</form>
+
+<div style="width: {{control.joystickSize}}px ;  margin-left: auto ;  margin-right: auto ;">
+    <joystickcontrol joystick-id="{{control.pitch.id}}" size={{control.joystickSize}} joystick-listener="control.joystickListener" joystick-click="control.joystickClick"></joystickcontrol>
+</div>
+<div class="text-center">
+	<a ng-click="control.back()"><i class='fa fa-5x fa-toggle-left'></i></a>
+	<a ng-click="control.forward()"><i class='fa fa-5x fa-toggle-right'></i></a>
+	</div>

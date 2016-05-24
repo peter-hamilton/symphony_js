@@ -1,0 +1,47 @@
+<div class="scrollable">
+    <div class="scrollable-content" id="scrollContainer">
+        <div class="section" ng-click="togglePitchFocus()">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h1><i class="fa pull-left {{tagParams.icon}}"></i></i>{{tagParams.name}}</h1>
+                </div>
+                <div ng-show="tagParams.id === homeParams.id" ng-include="'info.html'"></div>
+                <div>
+                    <div class="panel panel-default" ng-repeat="pitch in tagParams.pitches">
+                        <div class="btn-group pull-right">
+                            
+                            <a ui-turn-on='myDropdown{{pitch.id}}' class='btn'>
+                                <i class="fa fa-2x fa-ellipsis-v"></i>
+                            </a>
+                            <ul ui-state="myDropdown{{pitch.id}}" class="dropdown-menu" ui-outer-click="Ui.turnOff('myDropdown' + pitch.id)" ui-outer-click-if="Ui.active('myDropdown' + pitch.id)" role="menu" ui-show="myDropdown{{pitch.id}}" ui-turn-off="myDropdown{{pitch.id}}">
+                                <li><a ng-click="copyPitch(pitch)">Copy</a></li>
+                                <li ng-show="pasteable(pitch)"><a ng-click="pastePitch(pitch)">Paste {{localClipboard.id}}</a></li>
+                                <li><a ng-click="bindToFocus(pitch)">Bind to Focus</a></li>
+                            </ul>
+                        </div>
+                        <div ng-click="state.visible = !state.visible" ng-class="['panel-heading',{'pitch-focused': pitchFocus && (pitchFocus.id === pitch.id)}]">
+                            <a ng-click="$event.stopPropagation(); togglePitchFocus(pitch);"><i class="fa fa-2x pull-left {{getIconForType(pitch.type)}}"></i></a><span class="pull-right" ng-show="isBound(pitch)"><button class="btn btn-xs btn-info"><i class="fa fa-link"></i></button></span>
+                           
+                            <h2>{{pitch.description ? pitch.description : pitch.id}} ({{pitch.type}})</h2>
+                            <!-- <div class="pull-right" ng-if="tagParams.bound[pitch.id]"> -->
+                            <!-- asuikasdgiu -->
+                            <!-- <a class="btn btn-info"  ng-click="">
+                                <i class="fa fa-link"></i>AHHH
+                            </a> -->
+                            <!-- </div> -->
+                            <!-- <h4 ng-if="currentFocusDoc.data.arguments[pitch.id]">{{currentFocusDoc.data.arguments[pitch.id]}}</h4> -->
+                        </div>
+                        <div ng-if="!state.visible">
+                            <div class="panel-body">
+                                
+                    <pitch-item pitch="pitch"></pitch-item>
+                            </div>
+                        </div>
+                        <div ng-show="pitch.loading"><i class="fa-spinner fa-spin loading-spinner"></i></div>
+                    </div>
+                </div>
+                <input style="display:none;" type="submit" autofocus>
+            </div>
+        </div>
+    </div>
+</div>

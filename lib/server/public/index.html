@@ -1,0 +1,1885 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <title>Symphony Demo</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimal-ui" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="yes" />
+    <link rel="stylesheet" type="text/css" href="angular/dist/css/mobile-angular-ui-base.min.css">
+    <link rel="stylesheet" type="text/css" href="angular/dist/css/mobile-angular-ui-hover.min.css">
+    <link rel="stylesheet" type="text/css" href="angular/dist/css/mobile-angular-ui-desktop.min.css">
+    <link rel="stylesheet" type="text/css" href="css/fontawesome-iconpicker.min.css">
+    <link rel="stylesheet" type="text/css" href="rangeslider/rangeslider.css"></link>
+    <link rel="stylesheet" type="text/css" href="css/conductor.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular-sanitize.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular-cookies.min.js"></script>
+    <script type="text/javascript" src="angular/dist/js/mobile-angular-ui.min.js"></script>
+    <script type="text/javascript" src="angular/dist/js/mobile-angular-ui.gestures.min.js"></script>
+    <script type="text/javascript" src="js/lib/jquery-1.7.2.min.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/grid.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/version.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/detector.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/formatinf.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/errorlevel.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/bitmat.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/datablock.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/bmparser.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/datamask.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/rsdecoder.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/gf256poly.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/gf256.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/decoder.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/QRCode.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/findpat.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/alignpat.js"></script>
+    <script type="text/javascript" src="js/lib/jsqrcode/databr.js"></script>
+    <script type="text/javascript" src="js/camera.js"></script>
+    <script src="rangeslider/rangeslider.js"></script>
+    <script type="text/javascript" src="js/fontawesome-iconpicker.min.js"></script>
+    <script src="symphony.js"></script>
+    <script src="config.js"></script>
+    <script type="text/javascript">
+    /** Main AngularJS Web Application */
+    var app = angular.module('SymphonyDemo', [
+        "ngRoute",
+        "ngSanitize",
+        "mobile-angular-ui",
+        'mobile-angular-ui.gestures',
+        'ngCookies'
+    ]).config(function($routeProvider) {
+        $routeProvider.when('/', {
+            templateUrl: 'loading.html',
+            reloadOnSearch: false
+        });
+        $routeProvider.when('/t/:id', {
+            templateUrl: 'tagpage.html',
+            reloadOnSearch: false
+        });
+        $routeProvider.when('/t/:id/:pitch', {
+            templateUrl: 'tagpage.html',
+            reloadOnSearch: false
+        });
+        $routeProvider.otherwise({
+            redirectTo: '/'
+        });
+        // ...
+    });
+
+    app.directive("qrScannerContainer", function() {
+
+    });
+
+    app.directive("dynamicHeight", function() {
+        return {
+            link: function(scope, element, attrs) {
+                scope.$watch('watchedHeight', function(newHeight) {
+                    element.css({
+                        'padding-top': newHeight + 'px'
+                    });
+                });
+
+                scope.$watch('hideCam', function() {
+
+                    element.css({
+                        'padding-top': scope.watchedHeight + 'px'
+                    });
+                });
+            }
+        }
+    });
+
+    app.directive("getHeight", function() {
+        return {
+            link: function(scope, element, attrs) {
+                scope.$watch(function() {
+                    scope.watchedHeight = element[0].offsetHeight;
+                });
+
+                angular.element(window).on('resize', function() {
+                    scope.$apply(function() {
+                        scope.watchedHeight = element[0].offsetHeight;
+                    })
+                });
+            }
+        }
+    });
+
+    app.directive("pitchGroup", function() {
+        return {
+            restrict: 'C',
+            scope: true,
+            controller: function($scope) {
+                // $scope.meow = false;
+                // $scope.$watch("meow", function(newMeow){
+                //     console.log("wtf",newMeow);
+                // });
+                // scope.$watch(attrs.pitchGroup, function(toneId) {
+                //     console.log("meowwwwwwwwwwwwwwwwwwwwwwwww", toneId);
+                // });
+            }
+        };
+    });
+
+    app.directive("iconpicker", ['$location', function(location) {
+        return {
+            restrict: 'E',
+            link: function(scope, element, attrs) {
+                var container = $(element);
+
+                scope.control.color = "#ff0000";
+                scope.control.iconSelection = "fa-user";
+                // Events sample:
+                // This event is only triggered when the actual input value is changed
+                // by user interaction
+                $('.icp').on('iconpickerSelected', function(e) {
+                    console.log('fa-' + e.iconpickerInstance.options.fullClassFormatter(e.iconpickerValue));
+                    scope.control.iconSelection = 'fa-' + e.iconpickerInstance.options.fullClassFormatter(e.iconpickerValue);
+                });
+
+                $('.icp-auto').iconpicker({
+                    title: 'Select Icon',
+                    icons: $.iconpicker.defaultOptions.icons,
+                    fullClassFormatter: function(val) {
+                        return val;
+                    }
+                });
+
+
+            },
+            templateUrl: "controls/iconpicker.html"
+        };
+    }]);
+
+    app.directive("symphonyInput", ['$timeout', function($timeout) {
+        return {
+            restrict: 'E',
+            link: function(scope, element, attrs) {
+                var target = attrs.target ? scope.$eval(attrs.target) : null;
+                var focus = scope.currentTagId;
+                scope.label = attrs.label ? attrs.label : "Select Pitch";
+                scope.params = {};
+                scope.pitchcallback = attrs.pitchcallback ? scope.$eval(attrs.pitchcallback) : null;
+
+            },
+            template: "<button ng-click='requestPitch(params, pitchcallback)' class='btn btn-primary btn-block'>{{label}}</button>"
+        };
+    }]);
+
+
+
+    app.directive("playbackcontrol", ['$timeout', function($timeout) {
+        return {
+            restrict: 'E',
+            link: function(scope, element, attrs) {
+                scope.playbackListener = scope.$eval(attrs.playbackListener);
+                scope.playbackState = scope.$eval(attrs.state);
+                scope.control.title = "Unknown";
+                scope.control.duration = 100;
+                scope.control.currentTime = 0;
+
+                scope.$watch(attrs.state, function() {
+                    scope.playbackState = scope.$eval(attrs.state);
+                    // console.log("stateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", (scope.playbackState.currentTime/scope.playbackState.duration));
+                    // scope.progressbar.width( (scope.playbackState.currentTime/scope.playbackState.duration)*100 + '%');
+                    // scope.progressbar.attr('aria-valuenow', scope.playbackState.currentTime);
+                    // scope.progressbar.attr('aria-valuemax', scope.playbackState.duration);
+                    if (scope.playbackState) {
+                        scope.control.duration = scope.playbackState.duration;
+                        scope.control.currentTime = scope.playbackState.currentTime;
+                        scope.control.title = scope.playbackState.videoData.title;
+                        // scope.playbackSlider.attr("max", scope.playbackState.duration).change();
+                        // scope.playbackSlider.val(scope.control.currentTime).change();
+                        scope.playbackSlider.rangeslider('update', true);
+                    }
+                });
+
+                var jElement = $(element);
+                scope.handle = jElement.find('.playback-seekbar input[type="range"]');
+                scope.progressbar = jElement.find('.playback-seekbar div[role="progressbar"]');
+
+                var playButton = jElement.find('#play-btn');
+                var pauseButton = jElement.find('#pause-btn');
+
+                scope.playbackSlider = jElement.find('[playback-slider]')
+                scope.playbackSlider.rangeslider({
+                    // Deactivate the feature detection
+                    polyfill: false,
+                    fillClass: 'rangeslider__fill',
+                    // Callback function
+                    onInit: function() {
+                        // valueOutput(this.$element[0]);
+                    },
+                    // Callback function
+                    onSlide: function(position, value) {
+                        console.log("slip", value, this);
+                        // valueOutput(this.$element[0]);
+                        // console.log('onSlide');
+                        // console.log('position: ' + position, 'value: ' + value);
+                    },
+                    onSlideEnd: function(position, value) {
+                        seek();
+                        // valueOutput(this.$element[0]);
+                        // console.log('onSlide');
+                        // console.log('position: ' + position, 'value: ' + value);
+                    }
+                });
+
+
+                playButton.click(function() {
+                    if (scope.playbackListener) {
+                        scope.playbackListener({
+                            "type": "play"
+                        });
+                    }
+                });
+                pauseButton.click(function() {
+                    if (scope.playbackListener) {
+                        scope.playbackListener({
+                            "type": "pause"
+                        });
+                    }
+                });
+                var seek = function() {
+                    console.log("meowwwwwwwwwwwwwwwwwwwwwwwww");
+                    if (scope.playbackListener) {
+                        scope.playbackListener({
+                            "type": "seek",
+                            "value": scope.playbackSlider.val()
+                        });
+                    }
+                };
+
+                // scope.handle.mouseup(function() {
+                //     console.log("meowwwwwwwwwwwwwwwwwwwwwwwww");
+                //     if (scope.playbackListener) {
+                //         scope.playbackListener({
+                //             "type": "seek",
+                //             "percentage":  (this.value / 100)
+                //         });
+                //     }
+                // });
+            },
+            templateUrl: "controls/playbackControl.html"
+        };
+    }]);
+
+    app.directive("joystickcontrol", ['$touch', '$timeout', function($touch, $timeout) {
+        return {
+            restrict: 'E',
+            link: function(scope, element, attrs) {
+                scope.joystickId = attrs.joystickId;
+                scope.joystickListener = scope.$eval(attrs.joystickListener) || null;
+                scope.joystickClick = scope.$eval(attrs.joystickClick) || null;
+                scope.size = attrs.size || 300;
+                scope.color = attrs.size || null;
+
+                scope.headLimit = scope.size * 0.4;
+
+                scope.state = null;
+                scope.active = false;
+                scope.start = false;
+                scope.onclick = function(event) {
+                    if (!scope.start && joystickClick) {
+                        console.log("meow", event);
+                        scope.joystickClick();
+                    };
+                }
+                var containerElement = element[0].children[0];
+
+                scope.updateJoystick = function() {
+                    var touch = scope.touch;
+
+                    if (touch) {
+                        if (scope.state === touch.type) return;
+
+                        scope.state = touch.type;
+                        if (scope.active) {
+                            scope.headSize = scope.size * 0.6;
+                        } else {
+                            scope.headSize = scope.size * 0.4;
+                        }
+
+                        if (touch.angle) {
+                            scope.rotation = touch.angle - 90;
+                        } else {
+                            scope.rotation = 0;
+                        }
+
+                        scope.headLeft = (scope.size - scope.headSize) / 2;
+                        scope.headTop = (-scope.size - scope.headSize) / 2;
+                        if (touch.type === "touchmove") {
+                            if (touch.total > 25) {
+                                scope.start = true;
+                            }
+                            var ratio = 1;
+                            var absDistance = Math.abs(touch.distance);
+                            if (absDistance > scope.headLimit) {
+                                var ratio = scope.headLimit / absDistance;
+                            }
+                            scope.headLeft += touch.distanceX * ratio;
+                            scope.headTop += touch.distanceY * ratio;
+                            if (scope.joystickListener && scope.start) {
+                                scope.joystickListener({
+                                    'type': 'touchmove',
+                                    'ratio': ratio,
+                                    'angle': touch.angle,
+                                    'distanceX': touch.distanceX,
+                                    'distanceY': touch.distanceY
+                                });
+                            }
+                        } else if (touch.type === "touchend") {
+                            if (touch.total < 10 && scope.joystickClick) {
+                                scope.joystickClick();
+                            }
+                        }
+
+
+                    } else {
+                        scope.rotation = 0;
+                        scope.headSize = scope.size * 0.4;
+                        scope.headLeft = (scope.size - scope.headSize) / 2;
+                        scope.headTop = (-scope.size - scope.headSize) / 2;
+
+                    }
+
+
+
+                    if (!scope.$$phase) {
+                        scope.$apply();
+                        scope.state = null;
+                    }
+
+                };
+
+                scope.updateJoystick();
+
+                $touch.bind(containerElement, {
+                    start: function(touch) {
+                        scope.touch = touch;
+                        console.log("down", touch);
+                        scope.updateJoystick(touch);
+                    },
+
+                    cancel: function(touch) {
+                        scope.touch = touch;
+                        scope.active = false;
+                        scope.start = false;
+                        scope.state = null;
+                        console.log("cancel", touch);
+                        scope.updateJoystick(touch);
+                    },
+
+                    move: function(touch) {
+                        scope.touch = touch;
+                        if (scope.state === null) {
+                            scope.updateJoystick(touch);
+                        }
+                        // console.log(touch);
+                        // if (scope.active || touch.total > 25) {
+                        //     scope.active = true;
+                        //     scope.state = "start";
+                        // }
+                    },
+
+                    end: function(touch) {
+                        scope.touch = touch;
+                        scope.active = false;
+                        scope.start = false;
+                        scope.state = null;
+                        console.log("end", touch);
+                        scope.updateJoystick(touch);
+                    }
+                });
+
+
+
+            },
+            template: "<div ng-click='onclick' style='height:{{size}};width:{{size}};background-color=#000; ' id='{{joystickId}}'><i class='fa fa-circle-o-notch' style='font-size: {{size}}px;position: relative; left:0px;top:0px;margin:0px;border:0px;transform: rotate({{rotation}}deg)'></i><i class='fa fa-circle' style='font-size: {{headSize}}px;position: relative; left:0px;top:0px;border:0px;margin-top:{{headTop}}px;margin-left:{{headLeft}}px'></i></div>"
+        };
+    }]);
+
+
+    app.directive("keyItem", ['$sce', function($sce) {
+        return {
+            restrict: 'E',
+            scope: true,
+            link: function(scope, element, attrs) {
+
+                scope.keyItem = scope.$parent.$eval(attrs.key);
+                var key = new symphony.
+                // var key = scope.
+                scope.control.locked = key.hasFlags(symphony.Pitch.FLAG_LOCKED);
+                scope.control.in = key.hasFlags(symphony.Pitch.FLAG_IN);
+                scope.control.out = key.hasFlags(symphony.Pitch.FLAG_OUT);
+                var val = key.value;
+                if (key.hasFlags(symphony.Pitch.FLAG_ARGUMENT) && key.parent in scope.ensemble) {
+                    val = scope.ensemble[key.parent].note.arguments[pitch.id];
+                    scope.ensemble[pitch.parent].note.pitches[pitch.id].value = val;
+                }
+
+                if (val) {
+                    scope.control.value = val;
+
+                    scope.control.submit = function() {
+                        scope.symphonyClient.executePitch(pitch, scope.control.input);
+                    }
+                    scope
+                }
+                //TODO
+                if (false && pitch.arguments.controlTemplate) {
+                    scope.control = {};
+                    if (pitch.arguments.controlTemplate.url) {
+                        scope.controlUrl = pitch.arguments.controlTemplate.url;
+                    } else if (pitch.arguments.controlTemplate.html) {
+                        scope.controlUrl = "controls/templateControl.html";
+                        // scope.control.html = $sce.parseAsHtml("<iconpicker></iconpicker>");//pitch.arguments.controlTemplate.html);
+                        scope.control.html = $sce.parseAsHtml("hello");
+                        // scope.control.html = $sce.parseAsHtml(pitch.arguments.controlTemplate.html);
+                        scope.control.callback = function() {
+                            scope.symphonyClient.executePitch(pitch, "val");
+                        }
+                        var resetButton = $("#resetButton");
+                        resetButton.click(scope.control.callback)
+                        console.log("ddddddddddddddddddddddddd", resetButton);
+                    } else {
+                        return;
+                    }
+                } else {
+                    switch (type) {
+                        case "image":
+                            scope.controlUrl = "controls/image.html";
+                            scope.control.src = val;
+                            break;
+                        case "pitch":
+                            scope.controlUrl = "controls/stage.html";
+                            if (val && val.type === "pitch") { //prevent recursive loop
+                                val = null;
+                            }
+                            scope.control.value = val;
+                            scope.subcontrol = val;
+                            scope.control.pitchcallback = function(sourcePitch) {
+                                console.log(sourcePitch);
+                                if (sourcePitch) {
+                                    scope.symphonyClient.executePitch(pitch, sourcePitch);
+                                    // if(pitch.parent in scope.ensemble){
+                                    //     var note = new symphony.Note(scope.ensemble[pitch.parent].note);
+                                    //     var noteDoc = scope.symphonyClient.getDoc("notes",note.id);
+                                    //     var ops = note.putArgument(pitch.id, result);
+                                    //     console.log("ops",ops);
+                                    //     noteDoc.submitOp(ops);
+                                    // }
+                                }
+                            };
+                            break;
+                        case "text":
+                        case "url":
+                            scope.controlUrl = "controls/plaintext.html";
+                            scope.control.value = val ? val : "";
+                            if (scope.control.in) {
+                                scope.control.submit = function() {
+                                    scope.symphonyClient.executePitch(pitch, scope.control.inputValue);
+                                };
+                            }
+                            break;
+                        case "tag":
+                            scope.controlUrl = "controls/tagreader.html";
+                            break;
+                        case "avatar":
+                            scope.controlUrl = "controls/avatar.html";
+                            scope.control.name = "anon";
+                            scope.control.color = "#FF0000";
+                            scope.control.submit = function(e) {
+                                console.log(e);
+                            };
+                            break;
+                        case "browserCommand":
+                            scope.controlUrl = "controls/browserCommand.html";
+
+                            // scope.control.joystickMove = function()
+
+                            scope.updateInterval = 85;
+                            scope.lastUpdate;
+                            scope.control.joystickSize = 300;
+                            scope.control.joystickListener = function(event) {
+                                if (!event) return;
+
+                                var current = Date.now();
+                                if (scope.lastUpdate && current - scope.lastUpdate < scope.updateInterval) {
+                                    return;
+                                }
+                                scope.lastUpdate = current;
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'updateCursor',
+                                    'id': scope.symphonyClient.deviceId,
+                                    'y': event.distanceY,
+                                    'x': event.distanceX
+                                });
+                            };
+                            scope.control.joystickClick = function() {
+                                console.log("meh");
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'clickCursor',
+                                    'id': scope.symphonyClient.deviceId
+                                });
+                            };
+                            scope.control.forward = function() {
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'forward'
+                                });
+                            };
+                            scope.control.back = function() {
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'back'
+                                });
+                            };
+                            break;
+                        case "mediaCommand":
+                            scope.controlUrl = "controls/mediaCommand.html";
+                            scope.control.state = val;
+                            scope.control.playbackListener = function(event) {
+                                scope.symphonyClient.executePitch(pitch, event);
+                            };
+
+                            break;
+
+                        case "mapCommand":
+                            scope.controlUrl = "controls/mapCommand.html";
+                            scope.control.submit = function() {
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'search',
+                                    'value': scope.control.inputValue
+                                });
+                            };
+                            scope.control.zoomIn = function() {
+
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'zoom',
+                                    'value': 1
+                                });
+                            };
+                            scope.control.zoomOut = function() {
+
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'zoom',
+                                    'value': -1
+                                });
+                            };
+                            scope.control.joystickSize = 300;
+                            scope.control.joystickListener = function(event) {
+                                if (!event) return;
+
+                                var current = Date.now();
+                                if (scope.lastUpdate && current - scope.lastUpdate < scope.updateInterval) {
+                                    return;
+                                }
+                                scope.lastUpdate = current;
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'updateCursor',
+                                    'id': scope.symphonyClient.deviceId,
+                                    'y': event.distanceY,
+                                    'x': event.distanceX
+                                });
+                            };
+                            scope.control.joystickClick = function() {
+                                console.log("meh");
+                                scope.symphonyClient.executePitch(pitch, {
+                                    'type': 'clickCursor',
+                                    'id': scope.symphonyClient.deviceId
+                                });
+                            };
+
+
+                            break;
+                        case "note":
+                            scope.controlUrl = "controls/noteRouter.html";
+                            if (val) {
+                                // scope.symphonyClient.addSymphonyListener("notes", val, function(noteDoc){
+                                //     if(noteDoc.type){
+                                //         var note = new symphony.Note(noteDoc.data);
+                                //         scope.control.noteParams = scope.getChordParams();
+                                //     }
+                                //     console.log("TODO: listeners not being removed");
+                                // });
+                                scope.control.noteParams = scope.tagParamsFromId(val, function(params) {
+                                    console.log("TODO: listeners not being removed");
+                                    scope.control.noteParams = params;
+
+                                    if (!scope.$$phase) {
+                                        scope.$apply();
+                                    }
+                                });
+                            } else {
+                                scope.empty = true;
+                            }
+                            break;
+                        case "launchable":
+                            scope.controlUrl = "controls/launcher.html";
+                            scope.control.launchItems = scope.getLaunchItems();
+
+                            scope.control.launchCallback = function(item) {
+                                scope.symphonyClient.executePitch(pitch, item.url);
+                            }
+                            for (var pId in scope.pitches) {
+                                var pitchItem = scope.pitches[pId];
+                                var launchable = [pitchItem.pitch.type].concat(pitchItem.pitch.altType).indexOf("launchable");
+                                if (launchable >= 0) {
+                                    var url = pitchItem.pitch.value.url || "http://google.com";
+                                    var icon = pitchItem.pitch.value.icon || "fa-question";
+                                    scope.control.launchItems.push({
+                                        "name": pitchItem.pitch.description,
+                                        "url": url,
+                                        "icon": icon
+                                    });
+                                }
+                            }
+
+                            break;
+                        case "[launchable]":
+                            scope.controlUrl = "controls/launcher.html";
+                            scope.control.launchItems = scope.getLaunchItems();
+
+                            if (false && scope.control.in) {
+                                scope.control.launchCallback = function(item) {
+                                    if (scope.control.value) {
+                                        for (var i = scope.control.value.length - 1; i >= 0; i--) {
+                                            var pId = scope.control.value[i];
+                                            if (pId in scope.symphonyClient.pitches) {
+                                                var targetPitch = scope.symphonyClient.pitches[pId];
+                                                scope.symphonyClient.executePitch(targetPitch, item.url);
+                                            }
+                                        }
+                                    }
+
+                                };
+                            } else {
+                                scope.control.launchCallback = function(item) {
+                                    scope.setPitchFocus(pitch, {
+                                        "target": pitch,
+                                        "ins": ["launchable", "url"]
+                                    }, function(inputPitch) {
+                                        if (inputPitch) {
+                                            if (inputPitch.type === "url") {
+                                                scope.symphonyClient.executePitch(inputPitch, item.url);
+                                            }
+                                        }
+                                    });
+                                };
+                            }
+
+
+                            for (var pId in scope.pitches) {
+                                var pitchItem = scope.pitches[pId];
+                                var launchable = [pitchItem.pitch.type].concat(pitchItem.pitch.altType).indexOf("launchable");
+                                if (launchable >= 0) {
+                                    var url = pitchItem.pitch.value.url || "http://google.com";
+                                    var icon = pitchItem.pitch.value.icon || "fa-question";
+                                    scope.control.launchItems.push({
+                                        "name": pitchItem.pitch.description,
+                                        "url": url,
+                                        "icon": icon
+                                    });
+                                }
+                            }
+
+
+                            break;
+                        case "gameState":
+                            scope.controlUrl = "controls/gameControl.html";
+                            scope.control.val = val;
+                            scope.control.reset = function() {
+                                scope.symphonyClient.executePitch(pitch, false);
+                            };
+
+
+                            break;
+
+                    }
+                }
+            }
+        };
+    }]);
+
+    app.directive("pitchItem", ['$sce', function($sce) {
+        return {
+            restrict: 'E',
+            scope: true,
+            link: function(scope, element, attrs) {
+
+                // console.log("whhyyyyy", attrs.pitch, scope.pitchItem);
+                scope.pitchItem = scope.$parent.$eval(attrs.pitch);
+                scope.$watch(attrs.pitch, function(newItem) {
+                    scope.pitchItem = newItem;
+                });
+
+                scope.controlUrl = "controls/route.html";
+                scope.control = {};
+
+                scope.$watch("tagParams", function() {
+                    scope.updatePitchItem();
+                });
+
+                scope.$watch(attrs.noteParams, function() {
+                    scope.updatePitchItem();
+                });
+
+
+                scope.updatePitchItem = function() {
+                    var pitchItem = scope.pitchItem;
+                    var pitch = scope.control.pitch = new symphony.Pitch(pitchItem);
+                    var type = pitch.type;
+                    scope.control.keys = pitch.octaves;
+
+                    switch (type) {
+                        case "image":
+                            scope.controlUrl = "controls/image.html";
+                            scope.control.src = val;
+                            break;
+                        default:
+                            scope.controlUrl = "controls/octaveList.html";
+                            break;
+                    }
+
+
+                };
+
+                scope.updatePitchItem();
+
+
+
+            },
+            template: "<div ng-include='controlUrl'></div>"
+
+
+        }
+    }]);
+
+    app.directive("noteItem", function() {
+        return {
+            scope: true,
+            link: function(scope, element, attrs) {
+
+                scope.noteParams = scope.$parent.$eval(attrs.params);
+                scope.$watch(attrs.params, function(newItem) {
+                    scope.noteParams = scope.$parent.$eval(attrs.params);
+                    console.log("rrrrrrrrrrrrrrrrrrrrrrrrrrrrr", scope.noteParams);
+                    scope.updateChordParams();
+                });
+
+
+                scope.updateChordParams = function() {
+                    if (!scope.$$phase) {
+                        scope.$apply();
+                    }
+                }
+
+
+                scope.updateChordParams();
+            },
+            templateUrl: "notePage.html"
+
+
+        }
+    });
+
+
+    var a, s, l, m;
+
+    var androidHandlers = {};
+    var androidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+    var getLaunchItems = function() {
+        return [{
+            "href": "#/t/dgp",
+            "name": "DGP",
+            "icon": "fa-building-o"
+        }, {
+            "href": "#/t/clubhouse",
+            "name": "Clubmouse",
+            "icon": "fa-building-o"
+        }, {
+            "href": "#/t/stage1",
+            "name": "Stage 1",
+            "icon": "fa-folder-open"
+        }, {
+            "href": "#/t/stage2",
+            "name": "Stage 2",
+            "icon": "fa-folder-open"
+        }, {
+            "href": "#/t/projector1",
+            "name": "Display A",
+            "icon": "fa-desktop"
+        }, {
+            "href": "#/t/projector2",
+            "name": "Display B",
+            "icon": "fa-desktop"
+        }, {
+            "href": "#/t/projector3",
+            "name": "Display C",
+            "icon": "fa-desktop"
+        }, {
+            "href": "#/t/contact1",
+            "name": "Contact 1",
+            "icon": "fa-user"
+        }, {
+            "href": "#/t/contact2",
+            "name": "Contact 2",
+            "icon": "fa-user"
+        }];
+    };
+
+    var sampleTags = [{
+        "href": "#/t/dgp",
+        "name": "DGP",
+        "icon": "fa-building-o"
+    }, {
+        "href": "#/t/clubhouse",
+        "name": "Clubmouse",
+        "icon": "fa-building-o"
+    }, {
+        "href": "#/t/nfcReader",
+        "name": "NFC Reader",
+        "icon": "fa-tags"
+    }, {
+        "href": "#/t/stage1",
+        "name": "Stage 1",
+        "icon": "fa-folder-open"
+    }, {
+        "href": "#/t/stage2",
+        "name": "Stage 2",
+        "icon": "fa-folder-open"
+    }, {
+        "href": "#/t/projector1",
+        "name": "Display A",
+        "icon": "fa-desktop"
+    }, {
+        "href": "#/t/projector2",
+        "name": "Display B",
+        "icon": "fa-desktop"
+    }, {
+        "href": "#/t/contact1",
+        "name": "Contact 1",
+        "icon": "fa-user"
+    }, {
+        "href": "#/t/contact2",
+        "name": "Contact 2",
+        "icon": "fa-user"
+    }];
+
+
+    app.controller('TagController', function($rootScope, $scope, $routeParams, $cookies, $location, $sce, $timeout, $touch, SharedState) {
+        a = $rootScope;
+        l = $location;
+        m = SharedState;
+
+        $rootScope.homeHref = "#/";
+        $rootScope.homeParams = {};
+
+        $rootScope.sampleTags = sampleTags;
+
+        var deviceId = null;
+        // deviceId = $cookies.get("deviceId");
+        var host = config.host;
+        if (location.protocol === 'https:' && config.hostSSL) {
+            host = config.hostSSL;
+        }
+
+        var sc = $rootScope.symphonyClient = new symphony.client({
+            "host": host,
+            "deviceId": deviceId,
+            "type": 'conductor'
+        }, function() {
+            $rootScope.homeHref = "#/t/" + sc.deviceId;
+
+            sc.addSymphonyListener("tones", sc.deviceId, function() {
+                console.log("client tone updated");
+                var scope = $rootScope;
+                var note = new symphony.Note(sc.toneDoc.data);
+                var type = note.type;
+
+                scope.homeParams = {};
+                scope.homeParams.id = sc.deviceId;
+                scope.homeParams.href = "#/t/" + sc.deviceId;
+                scope.homeParams.note = note;
+                scope.homeParams.name = scope.homeParams.id + " (" + type + ")";
+                scope.homeParams.icon = note.arguments.icon ? note.arguments.icon : "fa-question";
+                scope.homeParams.pitches = note.pitches;
+
+                $rootScope.$applyAsync(function() {
+                    if (!$routeParams.id) {
+                        $location.path("t/" + sc.deviceId);
+                    }
+                });
+
+            });
+
+
+            // sc.registerIn("readTag", ["tag", "url", "text"], function(value) {
+            //     if (value) {
+            //         $rootScope.read(value);
+            //     }
+            // }, "Tag Reader");
+
+            // sc.putRegisteredArgument("launcher", getLaunchItems(), {
+            //     'type': '[launchable]',
+            //     'description': 'My Launcher'
+            // });
+
+            // // sc.registerStatic("focusTest", "note", "dgp", "Focus");
+
+            // sc.putRegisteredArgument("nickname", {
+            //     "name": "anon",
+            //     "icon": "fa-user",
+            //     "color": "#f00"
+            // }, {
+            //     'type': 'avatar',
+            //     'description': 'Nickname'
+            // });
+
+            // sc.registerIn("router", "pitch", function(value, source) {
+            //     console.log("RARA RARARARA", value, source);
+            //     var sourcePitch = new symphony.Pitch(source);
+            //     if (!sourcePitch) return;
+            //     var key = sourcePitch.key();
+            //     if (key in $rootScope.routerMap) {
+            //         var target = $rootScope.routerMap[key];
+            //         if (target in $rootScope.pitches) {
+            //             var targetPitch = $rootScope.pitches[target].pitch;
+            //             if (targetPitch.type === "pitch") {
+            //                 $rootScope.symphonyClient.matchPitch(targetPitch, sourcePitch);
+            //             } else {
+            //                 if (sourcePitch.type === "pitch") {
+            //                     value = value.value;
+            //                 }
+            //                 $rootScope.symphonyClient.executePitch(targetPitch, value, sourcePitch);
+            //             }
+            //         }
+            //     }
+
+            // }, "Router");
+            // sc.registerIn("focus", "pitch", function(value) {
+            //     console.log("focus", value);
+            // }, "Focus");
+
+            // sc.registerIn("keyboardInput", "keyEvent", function(value) {
+            //     // console.log("focus", value);
+            //     if (typeof SymphonyAndroid !== "undefined") {
+            //         SymphonyAndroid.emit("keyEvent", value);
+            //     } else {
+            //         $rootScope.handleRemoteKeyboardEvent(value);
+            //     }
+
+            // }, "Keyboard Input");
+            //on connected
+        });
+
+        $rootScope.handleRemoteKeyboardEvent = function(value) {
+
+        };
+
+        $rootScope.routerMap = {};
+        s = sc;
+
+        if (!deviceId) {
+            $cookies.put("deviceId", sc.deviceId);
+        }
+
+        $rootScope.connected = false;
+        $rootScope.registered = false;
+
+        $rootScope.pitchFocus = null;
+
+        $rootScope.defaultLaunchItems = [{
+            "name": "Maps",
+            "url": $rootScope.symphonyClient.host + "/maps.html" + "?" + "p=" + $rootScope.symphonyClient.deviceId,
+            "icon": "fa-map-marker"
+        }, {
+            "name": "Youtube",
+            "url": $rootScope.symphonyClient.host + "/youtube.html" + "?" + "p=" + $rootScope.symphonyClient.deviceId,
+            "icon": "fa-youtube"
+        }, {
+            "name": "Snakes and Daniels",
+            "url": $rootScope.symphonyClient.host + "/shoot.html" + "?" + "p=" + $rootScope.symphonyClient.deviceId,
+            "icon": "fa-crosshairs"
+        }];
+        $rootScope.getLaunchItems = function() {
+            var result = [];
+            result = result.concat($rootScope.defaultLaunchItems);
+            // for(var pId in scope.pitches){
+            //     var pitchItem = scope.pitches[pId];
+            //     var launchable = [pitchItem.pitch.type].concat(pitchItem.pitch.altType).indexOf("launchable");
+            //     if(launchable >= 0){
+            //         var url = pitchItem.pitch.value.url || "http://google.com";
+            //         var icon = pitchItem.pitch.value.icon || "fa-question";
+            //         scope.control.launchItems.push({"name":pitchItem.pitch.description,"url":url,"icon":icon});
+            //     }
+            // }
+            return result;
+        };
+
+        $rootScope.togglePitchFocus = function(pitch) {
+            var path = "#";
+            var noteId = $routeParams.id;
+
+            if (!pitch || ($rootScope.pitchFocus && $rootScope.pitchFocus.id === pitch.id)) {
+                path = "/t/" + noteId;
+            } else {
+                path = "/t/" + noteId + "/" + pitch.id;
+            }
+            $rootScope.$applyAsync(function() {
+                $location.path(path);
+            });
+        };
+
+        $rootScope.setPitchFocus = function(pitch, params, callback) {
+            if ($rootScope.activeRequest) {
+                $rootScope.activeRequest.cancel();
+            }
+
+            if (!pitch) {
+                $rootScope.pitchFocus = null;
+                $rootScope.updateSidebar(null);
+
+            } else if (params && callback) {
+                $rootScope.requestPitch(params, callback);
+            } else {
+                params = {};
+                pitch = new symphony.Pitch(pitch);
+                $rootScope.pitchFocus = pitch;
+                params.target = pitch;
+                if (pitch.hasFlags(symphony.Pitch.FLAG_IN)) {
+                    params.ins = [pitch.type].concat(pitch.altType);
+                }
+                $rootScope.requestPitch(params, function(sourcePitch) {
+                    if (sourcePitch) {
+                        if (sourcePitch.type === "pitch") { //TODO:ick
+                            var subPitch;
+                            if (sourcePitch.value)
+                                subPitch = sourcePitch.value;
+                            else if (sourcePitch.hasFlags(symphony.Pitch.FLAG_ARGUMENT)) {
+                                subPitch = scope.ensemble[sourcePitch.parent].note.arguments[pitch.id];
+
+                            }
+
+                            if (subPitch) {
+                                if (pitch.type === "pitch") {
+                                    $rootScope.symphonyClient.executePitch(pitch, subPitch);
+                                } else if (subPitch.value) {
+                                    $rootScope.symphonyClient.executePitch(pitch, subPitch.value);
+                                }
+                            }
+
+                        } else if (pitch.type === "pitch") { //stage
+                            $rootScope.symphonyClient.executePitch(pitch, sourcePitch);
+                        } else {
+                            $rootScope.symphonyClient.matchPitch(pitch, sourcePitch);
+                        }
+                    }
+                }, function(sourcePitch, event) {
+                    console.log("creating interval");
+
+                    if (!$rootScope.routerPitch) {
+                        $rootScope.routerPitch = new symphony.Pitch($rootScope.symphonyClient.toneDoc.data.pitches["router"]);
+                    }
+                    $rootScope.routerMap[sourcePitch.key()] = pitch.key();
+                    $rootScope.symphonyClient.createInterval($rootScope.routerPitch, sourcePitch);
+                    $rootScope.symphonyClient.createInterval($rootScope.routerPitch, pitch);
+                });
+            }
+            var params = $routeParams;
+            $rootScope.$applyAsync(function() {
+                if (pitch)
+                    SharedState.turnOn("uiSidebarLeft");
+                // if($rootScope.pitchFocus === null && params.pitch){
+                //  $location.path("#/t/"+params.id);
+                // } 
+            });
+        };
+
+        $rootScope.localClipboard = null;
+        $rootScope.pasteable = function(pitch) {
+            var pitch = new symphony.Pitch(pitch);
+            if ($rootScope.localClipboard && $rootScope.pitchCompatible($rootScope.localClipboard, pitch))
+                return $rootScope.localClipboard.id;
+            return false;
+        };
+        $rootScope.pastePitch = function(pitch) {
+            pitch = new symphony.Pitch(pitch);
+            if (pitch.type === "pitch") { //stage
+                $rootScope.symphonyClient.executePitch(pitch, $rootScope.localClipboard);
+            } else {
+                $rootScope.symphonyClient.matchPitch(pitch, $rootScope.localClipboard);
+            }
+        };
+        $rootScope.copyPitch = function(pitch) {
+            // $rootScope.localClipboard = new symphony.Pitch(pitch);
+            // $rootScope.symphonyClient.registerStatic("clipboard", "pitch", pitch, 'Clipboard');
+        };
+
+
+        $rootScope.bindToFocus = function(pitch) {
+            var source = new symphony.Pitch(pitch);
+            var target = new symphony.Pitch($rootScope.symphonyClient.toneDoc.data.pitches["focus"]);
+            $rootScope.symphonyClient.createInterval(target, source);
+        };
+
+        $rootScope.ensemble = {};
+        $rootScope.tagHistory = [];
+        $rootScope.pitches = {};
+        $rootScope.pitchOrder = [];
+
+        $rootScope.sidebarHack = {};
+
+        $rootScope.sidebarControl = {};
+        $rootScope.sidebarControl.submit = function() {
+            if ($rootScope.sidebarControl.tagQuery && $rootScope.sidebarControl.tagQuery !== "") {
+                $rootScope.read($rootScope.sidebarControl.tagQuery);
+                $rootScope.sidebarControl.tagQuery = "";
+            }
+        }
+
+        $rootScope.addTag = function(item, pos) {
+            if (!item || !item.id) {
+                throw "invalid item";
+            }
+            var scope = $rootScope;
+            item.href = item.href ? item.href : "#/t/" + item.id;
+            if (item.id in scope.ensemble) {
+                scope.ensemble[item.id].icon = item.icon;
+                scope.ensemble[item.id].name = item.name;
+            } else {
+                scope.ensemble[item.id] = item;
+            }
+            var existing = scope.tagHistory.indexOf(item.id);
+            if (pos && pos < scope.tagHistory.length) {
+                scope.tagHistory.splice(pos, 0, item.id)
+            } else {
+                scope.tagHistory.push(item.id);
+            }
+
+            //keep ensemble synced
+            var sc = $rootScope.symphonyClient;
+            if (sc && sc.toneDoc && sc.toneDoc.type) {
+                var tone = new symphony.Tone(sc.toneDoc.data);
+                var ensemble = {};
+                for (var eId in $rootScope.ensemble) {
+                    ensemble[eId] = null;
+                }
+                sc.putArgument("ensemble", ensemble);
+                // if (ops && ops.length !== 0) {
+
+                //     sc.toneDoc.submitOp(ops);
+                // }
+            }
+        };
+        $rootScope.addSidebarItem = function(item, pos) {
+            var scope = $rootScope;
+            scope.sidebarItems[item.id] = item;
+            var existing = scope.sidebarOrder.indexOf(item.id);
+            if (existing >= 0) {
+                scope.sidebarOrder.remove(existing);
+            }
+            if (pos && pos < scope.sidebarOrder.length) {
+                scope.sidebarOrder.splice(pos, 0, item.id)
+            } else {
+                scope.sidebarOrder.push(item.id);
+            }
+        };
+
+        $rootScope.sidebar = {};
+        $rootScope.updateSidebar = function(mode) {
+            $rootScope.sidebar = {};
+            if (mode !== undefined) {
+                $rootScope.sidebar.Mode = mode;
+            }
+
+
+            switch ($rootScope.sidebar.Mode) {
+                case 'Pitches':
+                    $rootScope.sidebar.Title = 'Pitches';
+                    $rootScope.sidebar.Items = $rootScope.pitches;
+                    $rootScope.sidebar.Order = $rootScope.pitchOrder;
+                    $rootScope.sidebar.ItemSelected = function(id, event) {
+                        event.preventDefault();
+                        if ($rootScope.activeRequest) {
+                            if ($rootScope.activeRequest.callback) {
+                                if (!(id in $rootScope.pitches)) {
+                                    throw "Pitch Removed"; //TODO!!
+                                }
+                                var pitch = new symphony.Pitch($rootScope.pitches[id].pitch);
+                                $rootScope.activeRequest.callback(pitch);
+                            }
+                        }
+                    };
+
+                    if ($rootScope.activeRequest.secondary) {
+                        $rootScope.sidebar.secondary = {
+                            'icon': 'fa-link'
+                        };
+                        $rootScope.sidebar.secondaryItemSelected = function(pid, aid, event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            var pitch = new symphony.Pitch($rootScope.pitches[pid].pitch);
+                            $rootScope.activeRequest.secondary(pitch);
+                        };
+                    }
+                    $rootScope.sidebar.HomeOff = true;
+                    break;
+                case 'Ensemble':
+                default:
+                    $rootScope.sidebar.Title = 'Ensemble';
+                    $rootScope.sidebar.Items = $rootScope.ensemble;
+                    $rootScope.sidebar.Order = Object.keys($rootScope.ensemble); //$rootScope.tagHistory;
+                    $rootScope.sidebar.ItemSelected = null;
+                    $rootScope.sidebar.HomeOff = false;
+            }
+            $rootScope.$applyAsync();
+        }
+
+        $rootScope.$on('mobile-angular-ui.state.changed.uiSidebarLeft', function(e, newVal) {
+            if (!newVal) {
+                if ($rootScope.activeRequest && $rootScope.activeRequest.cancel) {
+                    // $rootScope.activeRequest.cancel();
+                }
+            }
+        });
+
+        $rootScope.pitchCompatible = function(source, target) {
+            var ins = [target.type].concat(target.altType);
+            if (ins.indexOf("pitch") !== -1) return true;
+
+            var subpitchValid = false;
+            if (source.type === "pitch" && source.value) {
+                subpitchValid = (target.type === "pitch") || (ins.indexOf(source.value.type) !== -1);
+            }
+            if (target && target.id === source.id && target.parent === source.parent) {
+                return false;
+            }
+            if (!source.hasFlags(symphony.Pitch.FLAG_OUT)) {
+                return false;
+            }
+            if (!(subpitchValid) && !(ins.indexOf(source.type) !== -1)) {
+                return false;
+            }
+            return true;
+
+        };
+
+        $rootScope.updateEnsemblePitches = function() {
+
+
+
+            if ($rootScope.symphonyClient && $rootScope.symphonyClient.toneDoc.type) {
+
+                var localPitches = $rootScope.symphonyClient.toneDoc.data.pitches;
+                for (var pId in localPitches) {
+                    var pitch = new symphony.Pitch(localPitches[pId]);
+
+                    var id = pId;
+                    var href = "";
+                    var name = pitch.description ? pitch.description : pitch.id;
+                    var type = pitch.type;
+                    var icon = pitch.arguments.icon ? pitch.arguments.icon : $rootScope.getIconForType(type);
+
+                    var pitchItem = {};
+                    //create or update
+                    if ($rootScope.pitches[$rootScope.symphonyClient.deviceId + pitch.id]) {
+                        pitchItem = $rootScope.pitches[$rootScope.symphonyClient.deviceId + pitch.id];
+                    } else {
+                        $rootScope.pitches[$rootScope.symphonyClient.deviceId + pitch.id] = pitchItem;
+                    }
+                    pitchItem['id'] = id;
+                    pitchItem['href'] = href;
+                    pitchItem['name'] = name;
+                    pitchItem['type'] = type;
+                    pitchItem['pitch'] = pitch;
+                    pitchItem['icon'] = icon;
+                    pitchItem['loading'] = false;
+                }
+            }
+
+            for (var eId in $rootScope.ensemble) {
+                var item = $rootScope.ensemble[eId];
+                if (item && item.note) {
+                    for (var pId in item.note.pitches) {
+                        var pitch = new symphony.Pitch(item.note.pitches[pId]);
+
+                        var id = pId;
+                        var href = "";
+                        var name = pitch.description ? pitch.description : pitch.id;
+                        var type = pitch.type;
+                        var icon = pitch.arguments.icon ? pitch.arguments.icon : $rootScope.getIconForType(type);
+
+                        var pitchItem = {};
+                        //create or update
+                        if ($rootScope.pitches[item.id + pitch.id]) {
+                            pitchItem = $rootScope.pitches[item.id + pitch.id];
+                        } else {
+                            $rootScope.pitches[item.id + pitch.id] = pitchItem;
+                        }
+                        pitchItem['id'] = id;
+                        pitchItem['href'] = href;
+                        pitchItem['name'] = name;
+                        pitchItem['type'] = type;
+                        pitchItem['pitch'] = pitch;
+                        pitchItem['icon'] = icon;
+                        pitchItem['loading'] = false;
+                    }
+                }
+            }
+
+            if ($rootScope.activeRequest) {
+                var order = $rootScope.pitchOrder = [];
+                var pitchValid = $rootScope.activeRequest.ins.indexOf("pitch") !== -1;
+
+
+                $rootScope.sidebarHack = {}; //TODO:remove
+                var first = {}; //TODO:remove
+
+                for (var itemId in $rootScope.pitches) {
+                    var pitchItem = $rootScope.pitches[itemId];
+                    var pitch = pitchItem.pitch;
+                    var subpitchValid = false;
+                    if (pitch.type === "pitch" && pitch.value) {
+                        subpitchValid = ($rootScope.activeRequest.target.type === "pitch") || ($rootScope.activeRequest.ins.indexOf(pitch.value.type) !== -1);
+                    }
+                    if ($rootScope.activeRequest.target && $rootScope.activeRequest.target.id === pitch.id && $rootScope.activeRequest.target.parent === pitch.parent) {
+                        continue;
+                    }
+                    if (($rootScope.activeRequest.ins.length <= 0 || !pitch.hasFlags(symphony.Pitch.FLAG_OUT)) && ($rootScope.activeRequest.outs.length <= 0 || !pitch.hasFlags(symphony.Pitch.FLAG_IN))) {
+                        continue;
+                    }
+                    if (!(pitchValid) && !(subpitchValid) && !($rootScope.activeRequest.ins.indexOf(pitch.type) !== -1) && !($rootScope.activeRequest.outs.indexOf(pitch.type) !== -1)) {
+                        continue;
+                    }
+
+                    if (!(pitch.parent in first)) {
+                        first[pitch.parent] = true;
+                        $rootScope.sidebarHack[itemId] = pitch.parent;
+                        if (pitch.parent === $rootScope.symphonyClient.deviceId) {
+                            $rootScope.sidebarHack[itemId] = "Local";
+                        }
+                    }
+
+                    order.push(itemId);
+
+
+                }
+            } else if ($rootScope.pitchFocus && $rootScope.currentTagId in $rootScope.ensemble) {
+                var focus = $rootScope.ensemble[$rootScope.currentTagId];
+                var subFocus = $rootScope.pitchFocus;
+                var order = $rootScope.pitchOrder = [];
+                for (var itemId in $rootScope.pitches) {
+                    if (itemId !== (focus.id + subFocus.id)) {
+                        order.push(itemId);
+                    }
+                }
+            }
+        };
+
+        $rootScope.updateSidebar();
+
+        $rootScope.bind = function(pitch) {
+            if ($rootScope.activeRequest) {
+                console.log("source", pitch);
+                console.log("target", $rootScope.activeRequest.target);
+            }
+        };
+
+        $rootScope.activeRequest = null;
+
+        $rootScope.PitchRequest = function(params) {
+            params = params ? params : {};
+            this.target = params.target ? params.target : null;
+            this.ins = params.ins ? params.ins : [];
+            this.outs = params.outs ? params.outs : [];
+            this.callback = null;
+            this.cancel = null;
+        };
+
+        $rootScope.requestPitch = function(params, callback, secondary) {
+            console.log("callback", params, callback);
+            $rootScope.activeRequest = new $rootScope.PitchRequest(params, callback);
+            $rootScope.activeRequest.cancel = function() {
+                $rootScope.updateSidebar(null);
+                SharedState.turnOff("uiSidebarLeft");
+                if ($rootScope.activeRequest && $rootScope.activeRequest.callback)
+                    $rootScope.activeRequest.callback(null);
+                $rootScope.activeRequest = null;
+            };
+            $rootScope.activeRequest.callback = function(result) {
+                if (callback) {
+                    callback(result);
+                }
+                // $rootScope.updateSidebar(null);
+                SharedState.turnOff("uiSidebarLeft");
+                $rootScope.activeRequest = null;
+                $rootScope.setPitchFocus(null);
+            }
+            if (secondary) {
+                $rootScope.activeRequest.secondary = function(result) {
+                    secondary(result);
+                    SharedState.turnOff("uiSidebarLeft");
+                    $rootScope.activeRequest = null;
+                    $rootScope.setPitchFocus(null);
+                }
+            }
+            $rootScope.updateEnsemblePitches();
+            $rootScope.updateSidebar("Pitches");
+            SharedState.turnOn("uiSidebarLeft");
+            $rootScope.$applyAsync();
+        };
+
+        $rootScope.back = function() {
+            if ($rootScope.activeRequest) {
+                $rootScope.activeRequest.cancel();
+            }
+            if ($routeParams.pitch) {
+                $location.path("/t/" + $routeParams.id);
+            }
+            $rootScope.updateSidebar(null);
+        };
+
+
+
+        $rootScope.reset = function() {
+            $cookies.remove("deviceId");
+        }
+
+        $rootScope.setLoading = function() {
+            var scope = $rootScope;
+            scope.tagParams = {};
+            scope.tagParams.name = "Loading...";
+            scope.tagParams.icon = "media/icons/spinner-small.gif";
+            scope.tagParams.template = null;
+            if (!scope.$$phase) {
+                scope.$apply();
+            }
+        };
+
+        $rootScope.loadingParams = {
+            "name": "Loading...",
+            "icon": "media/icons/spinner-small.gif",
+            "template": null
+        };
+
+        $rootScope.tagParamsFromId = function(id, callback) {
+            var scope = $rootScope;
+            var sc = $rootScope.symphonyClient;
+            if (sc) {
+                var subscribeCallback = null;
+                if (callback) {
+                    subscribeCallback = function(doc) {
+                        return function() {
+                            var note = new symphony.Note(doc.data);
+                            callback(scope.getChordParams(note));
+                        };
+                    };
+                }
+                if (id === sc.deviceId) {
+                    if (subscribeCallback) {
+                        sc.toneDoc.fetch(subscribeCallback(sc.toneDoc));
+                    }
+                    return scope.getChordParams(sc.toneDoc.data);
+                } else {
+                    // var noteDoc = sc.getDoc("notes", id, function() {
+                    //     if (subscribeCallback)
+                    //         subscribeCallback(noteDoc)();
+                    // });
+                    // if (noteDoc.type) {
+                    //     var note = new symphony.Note(noteDoc.data);
+                    //     return scope.getChordParams(note);
+                    // } else {
+                    //     sc.harmonize(id);
+                    //     return $rootScope.loadingParams;
+                    // }
+
+                    sc.harmonize(id, function(chord) {
+                        if (chord) {
+                            chordDoc = sc.getDoc("chords", chord.id, function() {
+                                subscribeCallback(chordDoc)();
+                            });
+                        }
+                    });
+                    // if (note) {
+                    //     return scope.getChordParams(note);
+                    // } else if (subscribeCallback) {
+                    //     sc.clearSymphonyListeners("notes", id);
+                    //     sc.addSymphonyListener("notes", id, function(noteDoc) {
+                    //         subscribeCallback(noteDoc)();
+                    //     });
+                    // }
+                    return $rootScope.loadingParams;
+                }
+            } else {
+                return $rootScope.loadingParams;
+            }
+
+        };
+
+        $rootScope.getChordParams = function(note) {
+            var result = {};
+
+            result.id = note.parent;
+            result.href = "#/t/" + result.id;
+            result.note = note;
+            result.name = result.id + " (" + note.type + ")";
+            result.icon = note.arguments.icon ? note.arguments.icon : "fa-question";
+            result.pitches = note.pitches;
+            $rootScope.ensemble[note.parent] = result;
+            return result;
+        };
+
+        $rootScope.cam = null;
+        $rootScope.hideCam = true;
+
+        $rootScope.toggleCamera = function() {
+            var scope = $rootScope;
+            if ($rootScope.hideCam) {
+                $rootScope.cameraOn();
+            } else {
+                $rootScope.cameraOff();
+            }
+            window.setTimeout(function() {
+                if (!scope.$$phase) {
+                    scope.$apply();
+                }
+            });
+        };
+        $rootScope.cameraOn = function() {
+            var scope = $rootScope;
+            if ($rootScope.cam) {
+                $rootScope.cam.start();
+            }
+            $rootScope.hideCam = false;
+            if (!scope.$$phase) {
+                scope.$apply();
+            }
+        };
+
+        $rootScope.cameraOff = function() {
+            var scope = $rootScope;
+            if (scope.cam) {
+                scope.cam.stop();
+            }
+            scope.hideCam = true;
+            if (!scope.$$phase) {
+                scope.$apply();
+            }
+        };
+
+        $rootScope.setLoading();
+
+        sc.addOnRegisteredListener(function() {
+            $rootScope.harmonize();
+        });
+
+        // $rootScope.togglePitchState = function(pitch) {
+        //     return !$rootScope.getPitchState ? 1 : 0;
+        // };
+
+        // $rootScope.getPitchState = function(pitch) {
+        //     return 0;
+        // };
+
+
+        $rootScope.updateChordParams = function() {
+            var scope = $rootScope;
+            if (!scope.currentFocusDoc) {
+                scope.setLoading();
+
+                if (!scope.$$phase) {
+                    scope.$apply();
+                }
+                return;
+            } else {
+                var note = new symphony.Note(scope.currentFocusDoc.data);
+
+                var type = note.type;
+
+                scope.tagParams = scope.getChordParams(note);
+
+
+                if (scope.currentFocusDoc.id in scope.ensemble) {
+                    scope.ensemble[scope.currentFocusDoc.id] = scope.tagParams;
+                } else {
+                    scope.addTag(scope.tagParams);
+                }
+
+                $rootScope.updateEnsemblePitches();
+                $rootScope.updateSidebar();
+
+                if (!scope.$$phase) {
+                    scope.$apply();
+                }
+            }
+        }
+
+        $rootScope.chordHandler = function(noteDoc) {
+            console.log("ima handling it", noteDoc.data);
+            if (noteDoc.id !== $rootScope.currentTagId)
+                return;
+
+            var scope = $rootScope;
+            scope.currentFocusDoc = noteDoc;
+            // var id = noteDoc.id;
+            // var name = noteDoc.data.type;
+            // var icon = noteDoc.data.arguments.icon;
+            // scope.addTag({
+            //     'id': id,
+            //     'name': name,
+            //     'icon': icon
+            // });
+            scope.updateChordParams();
+        }
+
+        $rootScope.isBound = function(pitch) {
+            var result = !!$rootScope.symphonyClient.getIntervals(pitch);
+            return result;
+        }
+
+        $rootScope.harmonize = function() {
+            console.log("harmonizing " + $rootScope.currentTagId + " = " + $rootScope.symphonyClient.socket.connected);
+            var scope = $rootScope;
+            if ($rootScope.symphonyClient) {
+                if ($rootScope.currentTagId) {
+                    if ($rootScope.currentTagId === $rootScope.symphonyClient.deviceId) {
+                        var toneDoc = $rootScope.symphonyClient.toneDoc;
+                        if (toneDoc && toneDoc.type) {
+                            scope.tagParams = scope.homeParams;
+                        } else {
+                            $rootScope.setLoading();
+                        }
+                    } else {
+                        if ($rootScope.symphonyClient.socket.connected) {
+                            $rootScope.symphonyClient.harmonize($rootScope.currentTagId, function(chord) {
+                                if (chord) {
+                                    scope.tagParams = $rootScope.ensemble[chord.parent] = $rootScope.getChordParams(chord);
+                                    if (!scope.$$phase) {
+                                        scope.$apply();
+                                    }
+                                }
+                            });
+                        } else {
+                            //TODO: pending actions
+                        }
+                        if ($rootScope.currentTagId in $rootScope.ensemble) {
+                            scope.tagParams = $rootScope.ensemble[$rootScope.currentTagId];
+                            if (!scope.$$phase) {
+                                scope.$apply();
+                            }
+                        } else {
+                            $rootScope.setLoading();
+                        }
+                        $rootScope.symphonyClient.addSymphonyListener("chords", $rootScope.currentTagId, $rootScope.chordHandler);
+                        if ($rootScope.previousTagId) {
+                            $rootScope.symphonyClient.removeSymphonyListener("chords", $rootScope.previousTagId, $rootScope.chordHandler);
+                        }
+                    }
+                }
+            }
+        };
+
+
+        $rootScope.iconMap = {
+            'text': "fa-file-text",
+            'image': 'fa-file-image-o',
+            'tag': 'fa-tags',
+            'pitch': 'fa-music',
+            'url': 'fa-link',
+            'video': 'fa-video-camera',
+            'location': 'fa-map-marker',
+            'browserCommand': 'fa-arrows',
+            'mapCommand': 'fa-arrows',
+            'mediaCommand': 'fa-play-circle',
+            'keyEvent': 'fa-keyboard-o'
+        };
+        $rootScope.getIconForType = function(type) {
+            var result = "fa-gears"; //default
+            if (type && type in $rootScope.iconMap) {
+                result = $rootScope.iconMap[type];
+            }
+            return result;
+        };
+
+        $rootScope.label = "unknown";
+
+
+        // User agent displayed in home page
+        $scope.userAgent = navigator.userAgent;
+
+        $rootScope.currentTagId = undefined;
+
+
+
+        //connected
+        $rootScope.$watch(function() {
+                if (!$rootScope.symphonyClient || !$rootScope.symphonyClient.socket) {
+                    return false;
+                }
+                return $rootScope.symphonyClient.socket.connected;
+            },
+            function(newValue, oldValue) {
+                console.log("connected: ", newValue);
+                var connected = $rootScope.connected = newValue;
+                $rootScope.harmonize()
+            });
+
+        $rootScope.$watch('currentTagId', function(newValue, oldValue) {
+            if (oldValue) {
+                $rootScope.previousTagId = oldValue;
+            }
+
+            $rootScope.harmonize();
+        });
+
+
+
+        // Needed for the loading screen
+        $rootScope.$on('$routeChangeStart', function() {
+            console.log("changing");
+            $rootScope.loading = true;
+        });
+
+        $rootScope.$on('$routeChangeSuccess', function() {
+            console.log("changed, id=" + $routeParams.id + " focus: " + $routeParams.pitch);
+            $rootScope.loading = false;
+
+            $rootScope.currentTagId = $routeParams.id;
+            $rootScope.label = $routeParams.id;
+
+            //keep focus synced
+            var sc = $rootScope.symphonyClient;
+            if (sc && sc.toneDoc && sc.toneDoc.type) {
+                var tone = new symphony.Tone(sc.toneDoc.data);
+                // sc.putArgument("focus", $rootScope.currentTagId);
+
+            }
+
+            var pitch = null;
+            if ($routeParams.pitch) {
+                if ($rootScope.currentTagId in $rootScope.ensemble) {
+                    if ($routeParams.pitch in $rootScope.ensemble[$rootScope.currentTagId].pitches) {
+                        //get existing pitch
+                        pitch = $rootScope.ensemble[$rootScope.currentTagId].pitches[$routeParams.pitch];
+                    }
+                } else if ($rootScope.symphonyClient && $rootScope.currentTagId === $rootScope.symphonyClient.deviceId) {
+                    pitch = $rootScope.homeParams.note.pitches[$routeParams.pitch];
+                } else {
+                    //otherwise set loading
+                    pitch = {
+                        'id': $routeParams.pitch,
+                        'loading': true
+                    };
+                }
+
+            }
+            $rootScope.setPitchFocus(pitch);
+
+        });
+
+
+        //qr scanner
+        //scary
+        var read = androidHandlers["read"] = $rootScope.read = function(value) {
+            console.log("scanned " + value);
+            var tag = value;
+            if (tag.startsWith("http")) {
+                tag = tag.split("/t/")[1];
+            }
+
+            $rootScope.$applyAsync(function() {
+                $location.path("/t/" + tag);
+            });
+        };
+        qrcode.callback = read;
+
+        var cam_video_id = "camsource";
+
+        angular.element(document).ready(function() {
+            navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+            var video = document.getElementById(cam_video_id);
+            var options = {
+                "audio": false,
+                "video": true
+            };
+
+
+            // Replace the source of the video element with the stream from the camera
+            if (navigator.getUserMedia) {
+                MediaStreamTrack.getSources(function(sourceInfos) {
+                    var source = null;
+                    for (var i = 0; i != sourceInfos.length; ++i) {
+                        var sourceInfo = sourceInfos[i];
+                        if (sourceInfo.kind === 'video' && sourceInfo.facing === 'environment') {
+                            source = sourceInfo.id;
+                            break;
+                        }
+                    }
+                    if (source) {
+                        options["video"] = {
+                            optional: [{
+                                sourceId: source
+                            }]
+                        };
+                    }
+                    navigator.getUserMedia(options, function(stream) {
+                        video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+                    }, function(error) {
+                        console.log(error)
+                    });
+
+                });
+                var cam = $rootScope.cam = camera(cam_video_id);
+                cam.start();
+
+
+            }
+
+
+
+        });
+
+
+    });
+    </script>
+</head>
+
+<body ng-app="SymphonyDemo" ng-controller="TagController" ui-prevent-touchmove-defaults>
+    <!-- Sidebars -->
+    <div class="sidebar sidebar-left" ui-track-as-search-param="true" ng-include="'sidebar.html'"></div>
+    <div class="app">
+        <!-- Navbar-->
+        <div class="navbar navbar-app navbar-absolute-top" get-height="">
+            <div style="background-color: black">
+                <a class="sidebar-toggle" ui-toggle='uiSidebarLeft'><i style="color:white; padding: 6px" class="fa fa-3x fa-bars"></i></a>
+                <a ng-click="toggleCamera()"><i style="color:white; padding: 6px" class="fa fa-3x fa-qrcode"></i></a>
+                <div ng-hide="hideCam">
+                    <video id="camsource" style="display: block; margin-left:auto; margin-right:auto" autoplay width="320" height="240">Failure :(</video>
+                    <canvas id="qr-canvas" width="320" height="240; " style="display:none; margin-left:auto; margin-right:auto"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- App Body -->
+        <div class="app-body" dynamic-height="">
+            <div ng-show="loading" class="app-content-loading">
+                <i class="fa fa-spinner fa-spin loading-spinner"></i>
+            </div>
+            <div class="app-content">
+                <ng-view></ng-view>
+            </div>
+        </div>
+        <!-- Modals and Overlays -->
+        <div ui-yield-to="modals"></div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+<form role="form" name="overwriteform" ng-submit='control.submit()'>
+    <div ng-show="control.locked && control.out">
+        <label ng-bind="control.value"></label>
+    </div>
+    <div ng-show="control.in">
+        <input type="text" name="data" ng-model="control.inputValue" class="form-control" placeholder="Enter url">
+    </div>
+</form>

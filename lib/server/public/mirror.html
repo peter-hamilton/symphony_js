@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Template</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+    <script src="js/peer.js"></script>
+    <style type="text/css">
+
+    </style>
+    <script type="text/javascript">
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+
+    var symphonyClient = new symphony.client({
+        "host": host, //host of symphony server
+        "deviceId": "mirror", //if null, random UUID
+        "type": "mirror", //type of class
+        'arguments': {
+            'icon': 'fa-gears' //Font Awesome Icon
+        }
+    }, function() {
+        //Execute on Connected
+        symphonyClient.editPitch("test")
+        .addValue("mapEvent", {"type":"zoom", "value":"2"})
+        .update();
+        symphonyClient.harmonize("contact2");
+        symphonyClient.harmonize("maps");
+
+    });
+    var s = symphonyClient;
+    var peer;
+
+    var androidHandlers = {};
+    var handleAndroidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+
+    document.addEventListener("harmonize", function(event) {
+        if (event.detail) {
+            var subPitch = {
+                'id': 'subtone',
+                'type': 'note',
+                'value': symphonyClient.deviceId,
+                'description': 'Mirror',
+                'flags': symphony.Pitch.FLAG_LOCKED | symphony.Pitch.FLAG_OUT
+            };
+            registerSubPitch(subPitch);
+        }
+    });
+
+    var registerSubPitch = function(params) {
+        // Create the event.
+        var event = new CustomEvent('registerPitch', {
+            'detail': params
+        });
+        console.log("dispatching", event);
+        // target can be any Element or other EventTarget.
+        document.dispatchEvent(event);
+    };
+
+
+    var uri;
+    var displayCanvas;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+        displayCanvas = document.getElementById("c4");
+
+    });
+
+    //  function displayImage(url) {
+    //   var j = new JpegImage();
+    //   j.onload = function() {
+    //     var c = displayCanvas;
+    //     c.width = j.width;
+    //     c.height = j.height;
+    //     var ctx = c.getContext("2d");
+    //     var d = ctx.getImageData(0,0,j.width,j.height);
+    //     j.copyToImageData(d);
+    //     ctx.putImageData(d, 0, 0);
+    //   };
+    //   j.load(url);
+    // }
+    </script>
+</head>
+
+<body>
+<canvas id="c4"></canvas>
+    <!-- Content -->
+</body>
+
+</html>

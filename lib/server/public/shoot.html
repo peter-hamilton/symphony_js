@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Shooting Range</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="rangeslider/rangeslider.js"></script>
+    <link rel="stylesheet" type="text/css" href="rangeslider/rangeslider.css"></link>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    <style type="text/css">
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+    }
+    
+    .rangeslider__fill_red {
+        background: #ff0000;
+        position: absolute;
+    }
+    
+    .rangeslider--horizontal .rangeslider__fill_red {
+        top: 0;
+        height: 100%;
+    }
+    
+    .rangeslider--vertical .rangeslider__fill_red {
+        bottom: 0;
+        width: 100%;
+    }
+    
+    .overlay-container {
+        position: fixed;
+        width: 100%;
+        top: 45%;
+        text-align: center;
+        font-size: 36px;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .target {
+        /*margin: auto;*/
+        /*        max-width: 100%;
+        max-height: 100%;
+        height: auto;
+        padding: 10px;*/
+        width: auto;
+        height: 100%;
+    }
+    
+    .target.badger {
+        background: url(media/icons/badger.gif);
+        background-size: cover;
+    }
+    
+    .target.badger.hit {
+        background: url(media/icons/crosshairs.png), url(media/icons/badgerRainbow.gif);
+        background-size: cover;
+    }
+    
+    .target.snake {
+        background: url(media/icons/snake.png);
+        background-size: cover;
+    }
+    
+    .target.snake.hit {
+        background: url(media/icons/crosshairs.png), url(media/icons/snake.png);
+        background-size: cover;
+    }
+    
+    .target.daniel {
+        background: url(media/icons/daniel.png);
+        background-size: cover;
+    }
+    
+    .target.daniel.hit {
+        background: url(media/icons/crosshairs.png), url(media/icons/daniel.png);
+        background-size: cover;
+    }
+    </style>
+</head>
+
+<body>
+    <!-- Content -->
+    <!--  <input type="range" min="10" // default 0 max="1000" // default 100 step="10" // default 1 value="300" // default min + (max-min)/2> -->
+    <div>
+        <input type="range" class="rangeslider-disabled" min="0" max="10" step="0.01" value="0" readonly="readonly" magnitude-slider>
+        <output></output>
+    </div>
+    <div>
+        <input type="range" class="rangeslider-disabled" min="0" max="10" step="0.01" value="0" min-slider>
+        <output></output>
+    </div>
+    <div id="overlay" style="display: none;" class="overlay-container"></div>
+    <div class="target redtarget">
+    </div>
+    <script>
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+
+    var score = 0;
+    var gameState = null;
+
+    var symphonyClient = new symphony.client({
+        "host": host, //host of symphony server
+        "deviceId": "game", //if null, random UUID
+        "type": "game", //type of class
+        'arguments': {
+            'icon': 'fa-crosshairs' //Font Awesome Icon
+        }
+    }, function() {
+        //Execute on Connected
+        currentScorePitch = symphonyClient.register({
+            "id": "gameState",
+            "type": "gameState",
+            "description": "Scores",
+            "handler": function(val) {
+                if (val && val.change) {
+                    updateScore(val);
+                } else {
+                    score = 0;
+                    updateScore();
+                }
+            },
+            "flags": symphony.Pitch.FLAG_ARGUMENT | symphony.Pitch.FLAG_IN | symphony.Pitch.FLAG_OUT | symphony.Pitch.FLAG_LOCKED
+        });
+
+        symphonyClient.registerStatic("launch", "launchable", {
+            "name": "Snakes and Daniels",
+            "url": "http://engadget.com",
+            "icon": "fa-crosshairs"
+        }, "Launch Instance");
+
+        symphonyClient.setInstanceEventListener(function(args){
+            if(currentMode && currentMode in modes){
+                var mode = modes[currentMode];
+                if(mode.onInstanceEvent){
+                    mode.onInstanceEvent(args);
+                }
+            }
+        });
+
+        updateGame();
+    });
+
+    var getState = function(){
+        var gameState;
+        gameState = symphonyClient.getArgument("gameState");
+        if(!gameState){
+            gameState = new GameState();
+            symphonyClient.putArgument("gameState", gameState);
+        }
+    };
+
+    var updateGame = function(){
+
+    };
+
+    var updateScore = function(command) {
+        if (score === undefined || score === NaN) {
+            score = 0;
+        }
+        if (command) {
+            if (command.change) {
+                score = Number(score) + Number(command.change);
+            } else if (command.value) {
+                score = command.value;
+            }
+        }
+        if (symphonyClient) {
+            symphonyClient.putArgument("currentScore", "Score: " + score);
+            // currentScorePitch.putArgument("controlTemplate", getScoreTemplate());
+            // symphonyClient.updatePitch(currentScorePitch);
+        }
+    };
+
+    var scorePitch = null;
+
+    var androidHandlers = {};
+    var handleAndroidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+    var uri;
+
+
+    var i = 0;
+    var maxMagnitude = 0;
+    var magnitudeSliderVal = 0;
+    var minThreshold = 2;
+    var bufferSize = 25;
+    var motionBuffer = Array.apply(null, Array(bufferSize)).map(Number.prototype.valueOf, 0);
+    var motionSum = 0;
+    var restingThreshold = 0.8;
+
+    var hitStart = null;
+    var hitLengthMax = 400;
+
+    var overlay = $("#overlay");
+    var targetElement = $('.target');
+    var magnitudeSlider = $('[magnitude-slider]');
+    var minSlider = $('[min-slider]');
+    var maxSlider = $('[max-slider]');
+    minSlider.val(minThreshold).change();
+
+    var defaultHitSound = new Audio('media/sounds/bell.wav');
+    var defaultMissSound = new Audio('media/sounds/syren.wav');
+    var initSound = function() {
+        defaultHitSound.play();
+        defaultMissSound.play();
+        setTimeout(function() {
+            // the timeout isn't completely necessary but solves some issues on older devices/buggy browsers        
+            defaultHitSound.stop();
+            defaultMissSound.stop();
+        }, 0);
+
+        document.removeEventListener('touchstart', initSound, false);
+    }
+    document.addEventListener('touchstart', initSound, false);
+
+    var overlayTimeout = null;
+
+    var hideOverlay = function() {
+        overlay.hide();
+    }
+    var showOverlay = function(text, color, duration) {
+        if (!text) throw "invalid overlay message";
+        color = color || "#fff";
+        overlay.text(text);
+        overlay.css({
+            "color": color
+        });
+        overlay.show();
+        if (overlayTimeout) {
+            clearTimeout(overlayTimeout);
+            overlayTimeout = null;
+        }
+        if (duration) {
+            overlayTimeout = setTimeout(function() {
+                hideOverlay();
+            }, duration);
+        }
+    }
+    var getPlayers = function() {
+        var result = null;
+
+        if (symphonyClient && symphonyClient.toneDoc && symphonyClient.toneDoc.type) {
+
+        }
+        return result;
+    };
+
+    // {'default':{'name':'default','score':0}};
+    var getCurrentPlayer = function() {
+        var result = null;
+        return result;
+    };
+
+    var screenSizeMultiplier = 1;
+    var targets = {
+        'Snake': {
+            'name': 'Snake',
+            'points': 100,
+            'class': 'snake',
+            'frequency': 2,
+            'duration': null
+        },
+        'Daniel': {
+            'name': 'Daniel',
+            'points': -500,
+            'class': 'daniel',
+            'frequency': 1,
+            'duration': 7000
+        },
+        'Badger': {
+            'name': 'Badger',
+            'points': 300,
+            'class': 'badger',
+            'frequency': 1,
+            'duration': 4000
+        },
+        'Blank': {
+            'name': 'Blank',
+            'points': 300,
+            'class': 'blank',
+            'duration': null,
+            'bangProof': true
+        }
+    };
+
+        var defaultAction = function(target) {
+        updateScore({
+            "change": currentTarget.points
+        });
+
+        setTimeout(function() {
+            nextTarget();
+        }, 1500);
+    };
+
+    var onInstanceEvent = function(event){
+        if(!event){
+            return;
+        }
+        console.log("NEW INSTANCE!:",event);
+        if(event.added){
+
+        }else if(event.removed){
+
+        }
+    };
+
+    var modes = {"default":{"targets":targets, "defaultAction": defaultAction, "onInstanceEvent": onInstanceEvent}};
+    var currentMode = "default";
+    var currentTarget = {};
+    var frequencySum;
+    var durationTimer;
+
+
+
+    var addPlayer = function(player) {
+        players[player.id] = player;
+    };
+
+    var setCurrentPlayer = function(pId) {
+        var player = players[pId];
+        currentPlayer = player;
+    };
+
+
+
+    var bang = function() {
+        targetElement.addClass("hit");
+        if (currentTarget.sound) {
+
+        } else if (currentTarget.points > 0) {
+            defaultHitSound.play();
+        } else if (currentTarget.points <= 0) {
+            defaultMissSound.play();
+        }
+    };
+
+    var bangConfirm = function() {
+
+        if (currentTarget.action) {
+            currentTarget.action(currentTarget);
+        } else {
+            defaultAction(currentTarget);
+        }
+
+    };
+    var bangCancel = function() {
+        targetElement.removeClass("hit");
+    };
+
+    // var updateScoreBoard = function() {
+    //     var order = Object.keys(players).sort(function(a,b){
+    //         return targets[a].score - targets[b].score;
+    //     });
+    // }
+
+    var nextTarget = function() {
+
+        if (!frequencySum) {
+            frequencySum = 0;
+            for (var i = 0; i < targets.length; i++) {
+                var t = targets[i];
+                if (!t.frequency) continue;
+                frequencySum += t.frequency;
+            }
+        }
+        var choice = frequencySum * Math.random();
+        // console.log(choice);
+        var sum = 0;
+        for (var i = 0; i < targets.length; i++) {
+            var t = targets[i];
+            if (!t.frequency) continue;
+            sum += t.frequency;
+            if (choice <= sum) {
+                setTarget(t);
+                return;
+            }
+        }
+
+    };
+
+
+    var setTarget = function(newTarget) {
+        if (!newTarget) {
+            throw "invalid target";
+        }
+        currentTarget = newTarget;
+
+        if (durationTimer) {
+            clearTimeout(durationTimer);
+            durationTimer = null;
+        }
+
+        if (newTarget.duration) {
+            durationTimer = setTimeout(nextTarget, newTarget.duration);
+        }
+
+        targetElement.attr("class", "target " + newTarget.class);
+    };
+
+
+    var handleMotion = function(event) {
+        //check if reacts to motion events
+        if (currentTarget.bangProof)
+            return;
+
+        var magnitude = Math.sqrt(Math.pow(event.acceleration.x, 2) + Math.pow(event.acceleration.y, 2) + Math.pow(event.acceleration.z, 2));
+
+        //Todo: Super funky logic
+        var tstamp = Date.now();
+        if (motionSum / bufferSize < restingThreshold) {
+            if (magnitude > minThreshold) {
+                if (!hitStart) {
+                    hitStart = tstamp;
+                    bang();
+                    console.log("bang", magnitude, Math.abs(event.acceleration.x), Math.abs(event.acceleration.y), Math.abs(event.acceleration.z));
+                } else {
+                    if (tstamp - hitStart > hitLengthMax) {
+                        console.log("bang canceled 1");
+                        hitStart = null;
+                        bangCancel();
+                    }
+                }
+            } else if (hitStart && (tstamp - hitStart < hitLengthMax)) {
+                hitStart = null;
+                console.log("bang confirmed 1");
+                bangConfirm();
+
+            }
+        } else if (hitStart) {
+            if (tstamp - hitStart > hitLengthMax) {
+
+                hitStart = null;
+                console.log("bang canceled 2 ");
+                bangCancel();
+            } else if (magnitude < restingThreshold) {
+                hitStart = null;
+                console.log("bang confirmed 2");
+                bangConfirm();
+            }
+        }
+
+
+        motionSum += -motionBuffer.shift() + magnitude;
+        motionBuffer.push(magnitude);
+
+        if (magnitude > magnitudeSliderVal) {
+            maxMagnitude = magnitude;
+            magnitudeSliderVal = magnitude;
+        } else if (magnitudeSliderVal > 0) {
+            magnitudeSliderVal -= maxMagnitude / 100;
+        }
+        if (magnitudeSlider) {
+            magnitudeSlider.val(magnitudeSliderVal).change();
+        }
+
+
+    }
+
+    if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', function() {
+            handleMotion(event);
+        }, true);
+    } else {
+        //doesn't support motion
+    }
+
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+
+        // $('input[type="range"]').rangeslider('update', true);
+
+    });
+
+    // For ie8 support
+    var textContent = ('textContent' in document) ? 'textContent' : 'innerText';
+
+    function valueOutput(element) {
+        var value = element.value;
+        var output = element.parentNode.getElementsByTagName('output')[0] || element.parentNode.parentNode.getElementsByTagName('output')[0];
+        output[textContent] = value;
+    }
+
+
+    magnitudeSlider.rangeslider({
+        // Deactivate the feature detection
+        polyfill: false,
+        fillClass: 'rangeslider__fill_red',
+        // Callback function
+        onInit: function() {
+            valueOutput(this.$element[0]);
+        },
+        // Callback function
+        onSlide: function(position, value) {
+            valueOutput(this.$element[0]);
+            // console.log('onSlide');
+            // console.log('position: ' + position, 'value: ' + value);
+        }
+    });
+    minSlider.rangeslider({
+        // Deactivate the feature detection
+        polyfill: false,
+        // Callback function
+        onInit: function() {
+            valueOutput(this.$element[0]);
+        },
+        // Callback function
+        onSlide: function(position, value) {
+            valueOutput(this.$element[0]);
+            minThreshold = value;
+            // console.log('onSlide');
+            // console.log('position: ' + position, 'value: ' + value);
+        }
+    });
+
+    var GameState = function(){
+        this.mode = "default";
+        this.scores = {};
+        this.instanceTargets = {};
+    };
+
+    nextTarget();
+    </script>
+</body>
+
+</html>

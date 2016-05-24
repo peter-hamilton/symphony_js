@@ -1,0 +1,11 @@
+<div class="list-group text-center">
+
+	<div ng-show="control.in">
+    <div class="list-group-item list-group-item-home">
+        <h1>Sample Tags</h1>
+    </div>
+    <div ng-repeat="tag in sampleTags" class="list-group-item">
+        <a ng-href="{{tag.href}}" class="list-group-item ng-binding ng-scope">{{tag.name}}<i class="fa {{tag.icon}} pull-right"></i></a>
+    </div>
+    </div>
+</div>

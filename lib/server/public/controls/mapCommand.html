@@ -1,0 +1,14 @@
+<!-- <div ng-show="control.in"> -->
+<form role="form" name="overwriteform" ng-submit='control.submit()'>
+
+        <input type="text" name="data" ng-model="control.inputValue" class="form-control" placeholder="Search for location">
+        </form>
+    <!-- </div> -->
+<div style="width: {{control.joystickSize}}px ;  margin-left: auto ;  margin-right: auto ;">
+    <joystickcontrol joystick-id="{{control.pitch.id}}" size={{control.joystickSize}} joystick-listener="control.joystickListener" joystick-click="control.joystickClick"></joystickcontrol>
+</div>
+
+<div class="text-center">
+	<a ng-click="control.zoomIn()"><i class='fa fa-5x fa-plus-circle'></i></a>
+	<a ng-click="control.zoomOut()"><i class='fa fa-5x fa-minus-circle'></i></a>
+</div>

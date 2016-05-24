@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Maps</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+<style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+      .controls {
+        background-color: #fff;
+        border-radius: 2px;
+        border: 1px solid transparent;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        height: 29px;
+        margin-left: 17px;
+        margin-top: 10px;
+        outline: none;
+        padding: 0 11px 0 13px;
+        text-overflow: ellipsis;
+        width: 400px;
+      }
+
+      .controls:focus {
+        border-color: #4d90fe;
+      }
+    </style>
+</head>
+
+<body>
+    <input id="pac-input" class="controls" type="text"
+        placeholder="Enter a location">
+    <div id="map"></div>
+    <script>
+    var uri = URI(window.location);
+    var query = uri.search(true);
+
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+
+    var p;
+
+    var symphonyClient = new symphony.client({
+        "host": config.host,
+        "type": "maps",
+        "deviceId": "maps",
+        'arguments': {
+            'icon': 'fa-keyboard-o'
+        }
+    }, function() {
+
+        symphonyClient.editPitch("View")
+            .addIn("mapEvent", handleMapCommand)
+            .update();
+
+        symphonyClient.harmonize("95b9ac11", function(e) {
+            p = new symphony.Pitch(e.pitches.help);
+        });
+
+
+        if ("p" in query) {
+            symphonyClient.harmonize(query["p"]);
+        }
+        // symphonyClient.harmonize("mirror");
+    });
+    var s = symphonyClient;
+
+    var handleMapCommand = function(command, response) {
+        if (!command || !command.type || !map) return;
+        switch (command.type) {
+            case "zoom":
+                map.setZoom(map.zoom + command.value);
+                break;
+            case "updateCursor":
+                var current = map.getCenter();
+                var center = new google.maps.LatLng(current.lat() - (0.001 * command.y), current.lng() + (0.001 * command.x));
+                map.setCenter(center);
+                break;
+            case "clickCursor":
+                break;
+            case "search":
+                service.textSearch({
+                    "query": command.value
+                }, function(r) {
+                    if (r && r.length > 0) {
+                        var p = r[0];
+                        // map.setZoom(4);
+                        map.panTo(p.geometry.location);
+                        createMarker(p);
+                    }
+                });
+                break;
+        }
+    };
+
+
+
+    var map
+    var service;
+
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: {
+                lat: -33.8688,
+                lng: 151.2195
+            },
+            zoom: 13
+        });
+
+        var input = document.getElementById('pac-input');
+
+        var autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+        var infowindow = new google.maps.InfoWindow();
+        var marker = new google.maps.Marker({
+            map: map
+        });
+        marker.addListener('click', function() {
+            infowindow.open(map, marker);
+        });
+
+        autocomplete.addListener('place_changed', function() {
+            infowindow.close();
+            var place = autocomplete.getPlace();
+            if (!place.geometry) {
+                return;
+            }
+
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(17);
+            }
+
+            // Set the position of the marker using the place ID and location.
+            marker.setPlace({
+                placeId: place.place_id,
+                location: place.geometry.location
+            });
+            marker.setVisible(true);
+
+            infowindow.setContent('<div><strong>' + place.name + '</strong><br>' +
+                'Place ID: ' + place.place_id + '<br>' +
+                place.formatted_address);
+            infowindow.open(map, marker);
+        });
+    }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDK7UTwEKcdhUhEPN25e-bv6Vk22YRHymQ&libraries=places&callback=initMap">
+    </script>
+</body>
+
+</html>

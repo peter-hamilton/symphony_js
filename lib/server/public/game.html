@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Symphony Template</title>
+    <!-- Local Config Data -->
+    <script type="text/javascript" src="config.js"></script>
+    <!-- Symphony Client and Data Strucutres -->
+    <script type="text/javascript" src="symphony.js"></script>
+    <!-- URI Parse Library -->
+    <script type="text/javascript" src="js/URI.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <style type="text/css">
+
+    </style>
+    <script type="text/javascript">
+    //choose appropriate host
+    var host = config.host;
+    if (location.protocol === 'https:' && config.hostSSL) {
+        host = config.hostSSL;
+    }
+
+    var currentScorePitch = null;
+
+    var symphonyClient = new symphony.client({
+        "host": host, //host of symphony server
+        "deviceId": "game", //if null, random UUID
+        "type": "game", //type of class
+        'arguments': {
+            'icon': 'fa-crosshairs' //Font Awesome Icon
+        }
+    }, function() {
+        //Execute on Connected
+        currentScorePitch = symphonyClient.register({
+            "id": "currentScore",
+            "type": "gameState",
+            "description": "Scores",
+            "handler": function(val) {
+                if (val && val.change) {
+                    updateScore(val);
+                } else {
+                    score = 0;
+                    updateScore();
+                }
+            },
+            "flags": symphony.Pitch.FLAG_ARGUMENT | symphony.Pitch.FLAG_IN | symphony.Pitch.FLAG_OUT | symphony.Pitch.FLAG_LOCKED,
+            "arguments": {
+                "controlTemplate": getScoreTemplate()
+            }
+        });
+
+        symphonyClient.registerStatic("launch","launchable",{"name":"Snakes and Daniels", "url":"http://engadget.com", "icon":"fa-crosshairs"},"Launch Instance");
+
+        updateScore();
+    });
+
+    var score = 0;
+    var updateScore = function(command) {
+        if (command) {
+            if (command.change) {
+                score += command.change;
+            } else if (command.value) {
+                score = command.value;
+            }
+        }
+        if (symphonyClient) {
+            symphonyClient.putArgument("currentScore", "Score: " + score);
+            currentScorePitch.putArgument("controlTemplate", getScoreTemplate());
+            symphonyClient.updatePitch(currentScorePitch);
+        }
+    };
+
+    var getScoreTemplate = function() {
+        var result = {
+            "html": "<h1>Score: </h1><h2>" + score + "</h2><a id=\'resetButton\''>Reset</a>"
+        };
+        $("#score").html(result.html);
+        return result;
+    };
+
+    var androidHandlers = {};
+    var handleAndroidEvent = function(event, args) {
+        if (event in androidHandlers) {
+            androidHandlers[event](args);
+        }
+    };
+
+
+    document.addEventListener("harmonize", function(event) {
+        if (event.detail) {
+            var subPitch = {
+                'id': 'subtone',
+                'type': 'note',
+                'value': symphonyClient.deviceId,
+                'description': 'Game',
+                'flags': symphony.Pitch.FLAG_LOCKED | symphony.Pitch.FLAG_OUT
+            };
+            registerSubPitch(subPitch);
+        }
+    });
+
+    var registerSubPitch = function(params) {
+        // Create the event.
+        var event = new CustomEvent('registerPitch', {
+            'detail': params
+        });
+        console.log("dispatching", event);
+        // target can be any Element or other EventTarget.
+        document.dispatchEvent(event);
+    };
+
+
+    var uri;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        uri = URI(window.location);
+        var query = uri.search(true);
+
+        // if ("v" in query) {
+        //     var videoId = query.v;
+        // }
+    });
+    </script>
+</head>
+
+<body>
+    <!-- Content -->
+    <div id="score"></div>
+</body>
+
+</html>
